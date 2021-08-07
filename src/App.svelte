@@ -72,8 +72,6 @@
 <main>
 	{#if page === 'Welcome'}
 		<Welcome/>
-	{:else if page == "Choose Category"}
-		<ChooseCategory/>
 	{:else if page === "Game"}
 		<Game/>
 	{:else if page === 'HalfTime'}

@@ -47,7 +47,12 @@
                 questionTimer = undefined;
                 return;
             }
-            remTime = snap.val();
+            if(snap.val() >= 31) {
+                remTime = 30;
+            }
+            else {
+                remTime = snap.val();
+            }
             questionTimer = remTime;
             if(questionTimer > 15) {
                 borderColor = "#27AE60";
@@ -122,7 +127,7 @@
                     answerStatus.push(0);
                 }
             }
-            for(let i = currentQuestionNumber; i<15 ; i++) {
+            for(let i = currentQuestionNumber; i<10 ; i++) {
                 if(i === currentQuestionNumber) {
                     answerStatus.push(3);
                 }

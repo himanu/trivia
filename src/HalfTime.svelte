@@ -115,7 +115,12 @@
             }
         }
         if(user.id === hostId) {
-            fname = fname + " (Host)";
+            if(userId === hostId) {
+                fname = fname + " (You)";
+            }
+            else {
+                fname = fname + " (Host)";
+            }
         }
         else if(user.id === userId) {
             if(!isHost) {
@@ -133,16 +138,16 @@
             return false;
         }
     }
-    function handleContinueButton() {
-        if(currentQuestionNumber === 7) {
+    async function handleContinueButton() {
+        if(currentQuestionNumber === 4) {
             listenFirebaseKey(dbPage,(dbPageRef)=>{
                 dbPageRef.set('Game');
             });
             listenFirebaseKey(dbCurrentQuestionNumber,(dbCurrentQuestionNumberRef)=>{
-                dbCurrentQuestionNumberRef.set(8);
+                dbCurrentQuestionNumberRef.set(5);
             })
         }
-        else if(currentQuestionNumber === 14) {
+        else if(currentQuestionNumber === 9) {
             dbGameSessionRoundValue.set(roundValue + 1)
             .then(()=>{
                 console.log('Round Value is incremented');
@@ -152,20 +157,52 @@
             });
         }
     }
+    let backgroundColorMap = {
+        0 : "#219653",
+        1 : "#6FCF97",
+        2 : "#F2C94C",
+        3 : "#F2994A",
+        4 : "#EB5757"
+    }
+    let scoreRemarkMap = {
+        0 : "Excellent",
+        1 : "Good",
+        2 : "Average",
+        3 : "Poor",
+        4 : "Very poor"
+    }
+    function calculateGrade(get,total) {
+        let grade = (get*100)/total;
+        if(grade > 80) {
+            return 0;
+        }
+        else if(grade > 70) {
+            return 1;
+        }
+        else if(grade > 60) {
+            return 2;
+        }
+        else if(grade > 50) {
+            return 3;
+        }
+        else {
+            return 4;
+        }
+    }
 </script>
 <div class="halfTime">
     <TriviaIcon/>
     <div class = "heading">
-        {#if currentQuestionNumber === 7}
+        {#if currentQuestionNumber === 4}
             Half Time!
-        {:else if currentQuestionNumber === 14}
+        {:else if currentQuestionNumber === 9}
             Leaderboard
         {/if}
     </div>
     <div class="message">
-        {#if currentQuestionNumber === 7}
-            7 more question to go
-        {:else if currentQuestionNumber === 14}
+        {#if currentQuestionNumber === 4}
+            5 more question to go
+        {:else if currentQuestionNumber === 9}
             {scoreLeader} is leading!
         {/if}
     </div>
@@ -173,7 +210,7 @@
         <div class="usersList">
             <div class="users">
                 {#each usersArray as currUser}
-                    <div class="user">
+                    <div class="user" class:you = {currUser.user.id === userId}>
                         <div class="userDetails">
                             {#if validUserProfilePicture(currUser.user.profilePicture)}
                                 <img class = "profilePicture" src = {currUser.user.profilePicture} alt = "UserProfilePicture">
@@ -190,7 +227,7 @@
                                 </div>
                             {/if}
                         </div>
-                        <div class="userScore">
+                        <div class="userScore" title = {scoreRemarkMap[calculateGrade(scoreOfUser[currUser.user.id],currentQuestionNumber + 1)]} style = "background : {backgroundColorMap[calculateGrade(scoreOfUser[currUser.user.id],currentQuestionNumber + 1)]}">
                             {scoreOfUser[currUser.user.id] !== undefined? scoreOfUser[currUser.user.id] : 0}/{currentQuestionNumber + 1}
                         </div>
                     </div>
@@ -199,10 +236,25 @@
         </div>
     </div>
     {#if isHost}
-        <CustomButton btnText = {currentQuestionNumber === 7?"Continue":"Restart Game"} on:click = {handleContinueButton}/>
+        <CustomButton btnText = {currentQuestionNumber === 4?"Continue":"New Game"} on:click = {handleContinueButton}/>
+    {:else}
+        <div class="message message1">
+            Only {hostName} can continue the game.
+        </div>
     {/if}
 </div>
 <style>
+    ::-webkit-scrollbar {
+        width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+        background-color: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background-color : #ABABAB;
+        border : 2px solid none;
+        border-radius: 5px;
+    }
     .halfTime {
         display: flex;
         flex-direction: column;
@@ -222,6 +274,10 @@
         font-size : 1rem;
         color : #fff;
         margin-top : 1rem;
+    }
+    .message1 {
+        font-weight : 700;
+        font-size : 0.85rem;
     }
     .usersContainer{
         width : 30%;
@@ -274,12 +330,21 @@
         overflow-y: auto;
         display : flex;
         flex-direction: column;
+        padding : 2px;
     }
     .user {
         display : flex;
         justify-content: space-between;
         align-items: center;
         padding : 10px 5px;
+    }
+    .you {
+        background : #6C44A8;
+        color : #fff;
+        border-radius : 0.5rem;
+    }
+    .you .name {
+        color : #fff;
     }
     .userDetails {
         display : flex;

@@ -2,6 +2,8 @@ export const params =  new URLSearchParams(window.location.search);
 export  const getParams =  function (name) {
     return '' + params.get(name);
 };
+import { writable } from 'svelte/store';
+export const changePageToChooseCategory = writable(0);
 export const getGameSessionId = function () {
     return getParams('roomId') + '+' + getParams('sessionId');
 };

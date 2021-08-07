@@ -1,10 +1,12 @@
 <script>
-    import {dbUsers,dbHost, dbGameSessionRound,listenFirebaseKey, dbCategoryName} from './database';
+    import {dbUsers,dbHost, dbGameSessionRound,listenFirebaseKey, dbCategoryName,dbPage} from './database';
     import {getParams} from './utils';
     import Tick from './OnlineTick.svelte';
     import DisconnectedSvg from './DisconnectedSvg.svelte';
     import CustomButton from './CustomButton.svelte';
     import TriviaIcon from './TriviaIcon.svelte';
+    import ChooseCategory from './ChooseCategory.svelte';
+    import {changePageToChooseCategory} from './utils';
 
     let hostId;
     let isHost;
@@ -14,6 +16,8 @@
     let categoryName;
     let noOfOnlinePlayers = 0;
     let disableStartGameBtn = false;
+    let page;
+
     dbUsers.on('value',(snap)=>{
         if(!snap.exists()) {
             return;
@@ -87,12 +91,26 @@
             return false;
         }
     }
-    function handleChooseCategory() {
-        listenFirebaseKey(dbGameSessionRound,(dbGameSessionRoundRef)=>{
-            dbGameSessionRoundRef.update({
-                page : "Choose Category"
-            })
+    let changePage;
+    const unsubscribe = changePageToChooseCategory.subscribe((value)=>{
+        console.log('value ',value);
+        changePage = value;
+    })
+    listenFirebaseKey((dbPage),(dbPageRef)=>{
+        dbPageRef.on('value',(snap)=>{
+            if(!snap.exists()) {
+                return;
+            }
+            page = snap.val();
         })
+    })
+    function handleChooseCategory() {
+        // listenFirebaseKey(dbGameSessionRound,(dbGameSessionRoundRef)=>{
+        //     dbGameSessionRoundRef.update({
+        //         page : "Choose Category"
+        //     })
+        // });
+        changePageToChooseCategory.set(1);
     }
     function handleStartGame() {
         disableStartGameBtn = true;
@@ -103,86 +121,97 @@
             })
         })
     }
+    function handleViewCategory() {
+        changePageToChooseCategory.update((value)=>{
+            return value + 1;
+        })
+    }
 </script>
-    <div class="welcomeContainer">
-        <TriviaIcon/>
-        <div class = "waitingMsg">
+    {#if changePage === 1}
+        <ChooseCategory/>
+    {:else}
+        <div class="welcomeContainer">
+            <TriviaIcon/>
+            <div class = "waitingMsg">
+                {#if isHost}
+                    {#if !categoryName}
+                        Select a category
+                    {:else}
+                        You have selected <span class = "categoryName">" {categoryName} "</span> category
+                    {/if}
+                {:else}
+                    {#if !categoryName && hostName}
+                        Ask {hostName}(host) to select a category
+                    {:else if hostName} 
+                        {hostName} (Host) have selected <span class = "categoryName">" {categoryName} "</span> category
+                    {/if}
+                {/if}
+            </div>
+            <div class = "playersContainer">
+                {#if hostId && users}
+                    <div class="host">
+                        <div class = "imageContainer" title = {users[hostId].userName} style = "width : 6rem; height : 6rem ;border : 0.25rem solid {users[hostId].isOnline?"#40BB45":"#AC312F"}">
+                            {#if users[hostId].isOnline}
+                                <Tick/>
+                            {:else}
+                                <DisconnectedSvg/>
+                            {/if}
+                            {#if validUserProfilePicture(users[hostId].profilePicture)}
+                                <img class = "profilePicture" src = "{users[hostId].profilePicture}"  alt = "profilePicture">
+                            {:else}
+                                <div class="fakeProfilePicture">
+                                    {users[hostId].userName[0].toUpperCase()}
+                                </div>
+                            {/if}
+                        </div>
+                        
+                        <div class="name" style = "font-size : 0.85rem">
+                            {processName(users[hostId])}
+                        </div>
+                    </div>
+                {/if}
+                <div class = "normalPlayerContainer">
+                    {#each usersArray as currUser}
+                        {#if currUser.id !== hostId}
+                            <div class="normalPlayer">
+                                <div class = "imageContainer" title = {currUser.userName} style = "border : 0.2rem solid {currUser.isOnline?"#40BB45":"#AC312F"}">
+                                    {#if currUser.isOnline}
+                                        <Tick/>
+                                    {:else}
+                                        <DisconnectedSvg/>
+                                    {/if}
+                                    {#if validUserProfilePicture(currUser.profilePicture)}
+                                        <img class = "profilePicture"  src = "{currUser.profilePicture}" alt = "profilePicture">
+                                    {:else}
+                                        <div class="fakeProfilePicture">
+                                            {currUser.userName[0].toUpperCase()}
+                                        </div>
+                                    {/if}
+                                </div>
+                                
+                                <div class="name">
+                                    {processName(currUser)}
+                                </div>
+                            </div>
+                        {/if}
+                    {/each}
+                </div>
+            </div>
             {#if isHost}
                 {#if !categoryName}
-                    Select a category
+                    <CustomButton btnText = {"Choose Category"} on:click = {handleChooseCategory} disableBtn = {false}/>
                 {:else}
-                    You have selected <span class = "categoryName">" {categoryName} "</span> category
+                    <div class="buttonContainer">
+                        <CustomButton btnText = {"Change Category"} on:click = {handleChooseCategory} />
+                        <CustomButton btnText = {"Start Game"} on:click = {handleStartGame} disableBtn = {noOfOnlinePlayers < 2 || disableStartGameBtn} tooltipMsg = {noOfOnlinePlayers<2?"Number of online players are less than 2":""}/>
+                        
+                    </div>
                 {/if}
             {:else}
-                {#if !categoryName && hostName}
-                    Ask {hostName}(host) to select a category
-                {:else if hostName} 
-                    {hostName} (Host) have selected <span class = "categoryName">" {categoryName} "</span> category
-                {/if}
+                <CustomButton btnText = {"View Categories"} on:click = {handleViewCategory} disableBtn = {false}/>
             {/if}
         </div>
-        <div class = "playersContainer">
-            {#if hostId && users}
-                <div class="host">
-                    <div class = "imageContainer" title = {users[hostId].userName} style = "width : 6rem; height : 6rem ;border : 0.25rem solid {users[hostId].isOnline?"#40BB45":"#AC312F"}">
-                        {#if users[hostId].isOnline}
-                            <Tick/>
-                        {:else}
-                            <DisconnectedSvg/>
-                        {/if}
-                        {#if validUserProfilePicture(users[hostId].profilePicture)}
-                            <img class = "profilePicture" src = "{users[hostId].profilePicture}"  alt = "profilePicture">
-                        {:else}
-                            <div class="fakeProfilePicture">
-                                {users[hostId].userName[0].toUpperCase()}
-                            </div>
-                        {/if}
-                    </div>
-                    
-                    <div class="name" style = "font-size : 0.85rem">
-                        {processName(users[hostId])}
-                    </div>
-                </div>
-            {/if}
-            <div class = "normalPlayerContainer">
-                {#each usersArray as currUser}
-                    {#if currUser.id !== hostId}
-                        <div class="normalPlayer">
-                            <div class = "imageContainer" title = {currUser.userName} style = "border : 0.2rem solid {currUser.isOnline?"#40BB45":"#AC312F"}">
-                                {#if currUser.isOnline}
-                                    <Tick/>
-                                {:else}
-                                    <DisconnectedSvg/>
-                                {/if}
-                                {#if validUserProfilePicture(currUser.profilePicture)}
-                                    <img class = "profilePicture"  src = "{currUser.profilePicture}" alt = "profilePicture">
-                                {:else}
-                                    <div class="fakeProfilePicture">
-                                        {currUser.userName[0].toUpperCase()}
-                                    </div>
-                                {/if}
-                            </div>
-                            
-                            <div class="name">
-                                {processName(currUser)}
-                            </div>
-                        </div>
-                    {/if}
-                {/each}
-            </div>
-        </div>
-        {#if isHost}
-            {#if !categoryName}
-                <CustomButton btnText = {"Choose Category"} on:click = {handleChooseCategory} disableBtn = {false}/>
-            {:else}
-                <div class="buttonContainer">
-                    <CustomButton btnText = {"Change Category"} on:click = {handleChooseCategory} />
-                    <CustomButton btnText = {"Start Game"} on:click = {handleStartGame} disableBtn = {noOfOnlinePlayers < 2 || disableStartGameBtn} tooltipMsg = {noOfOnlinePlayers<2?"Number of online players are less than 2":""}/>
-                    
-                </div>
-            {/if}
-        {/if}
-    </div>
+    {/if}
 <style>
     ::-webkit-scrollbar {
         width: 14px;

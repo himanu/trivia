@@ -33,7 +33,7 @@
     }
     .startBtn{
 		background: #FFFFFF;
-		box-shadow: 0px 8px #98C8E2;
+		box-shadow: 0px 6px #98C8E2;
 		border-radius: 30px;
 		padding : 5px 20px;
 		display : flex;
@@ -45,7 +45,7 @@
 	}
 	.disabledBtn {
 		background: #FFFFFF;
-		box-shadow: 0px 8px #98C8E2;
+		box-shadow: 0px 6px #98C8E2;
 		border-radius: 30px;
 		padding : 5px 20px;
 		display : flex;
@@ -60,7 +60,7 @@
 	.scaleBtn:hover {
 		box-shadow: 0px 4px #98C8E2;
 		position: relative;
-		top : 4px;
+		top : 2px;
 	}
 	.startBtn:hover .tooltip {
 		opacity: 1;

@@ -1,10 +1,11 @@
 <script>
     import TriviaIcon from "./TriviaIcon.svelte";
-    import {dbHost,dbGameSessionRoundValue, dbGameSessionRound,dbAllCategories,listenFirebaseKey,setAllQuestions,dbUsers, dbUser} from './database';
+    import {dbHost,dbGameSessionRoundValue, dbGameSessionRound,dbAllCategories,listenFirebaseKey,setAllQuestions,dbUsers, dbUser,dbCategoryName} from './database';
     import {getParams,getGameSessionId} from './utils';
     import CustomIcon from './icons/CustomCategoryAdd.svelte';
     import CustomButton from './CustomButton.svelte';
     import {fly} from 'svelte/transition';
+    import {changePageToChooseCategory} from './utils';
 
     let hostId;
     let isHost;
@@ -16,6 +17,7 @@
     let roundValue;
     let hostname;
     let users;
+    let categoryName;
 
     dbHost.on('value',(snap)=>{
         if(!snap.exists()) {
@@ -26,6 +28,15 @@
             isHost = true;
         }
     })
+    listenFirebaseKey(dbCategoryName,(dbCategoryNameRef)=>{
+        dbCategoryNameRef.on('value',(snap)=>{
+            if(!snap.exists()) {
+                return;
+            }
+            categoryName = snap.val();
+        })
+    })
+    
     dbUsers.on('value',(snap)=>{
         if(!snap.exists()) {
             return;
@@ -73,11 +84,15 @@
     }
     function confirmCategory() {
         console.log('Conform category is called');
+        changePageToChooseCategory.set(0);
         setAllQuestions({
             "categoryId" : selectedCategoryId,
             roundValue,
             gameSessionId
         });
+    }
+    function handleGoBack() {
+        changePageToChooseCategory.update((value) => value - 1);
     }
 </script>
 <div class="chooseCategoryContainer">
@@ -85,8 +100,10 @@
     <div class="message">
         {#if isHost}
             Select a category
-        {:else}
-            {hostname} (Host) is selecting category
+        {:else if !categoryName}
+            {hostname} (Host) will select one of the category
+        {:else if categoryName}
+            {hostname} (Host) have selected <span class = "selectedCategoryName">{categoryName}</span> category
         {/if}
     </div>
     <div class = "categoriesList" in:fly ="{{ y: -20, duration: 1000 }}">
@@ -101,6 +118,8 @@
     </div>
     {#if isHost}
         <CustomButton btnText = "Confirm Category" tooltipMsg = {selectedCategoryId === undefined?"Please select one of the category":""} disableBtn = {selectedCategoryId === undefined} on:click = {confirmCategory}/>
+    {:else}
+        <CustomButton btnText = "Go back" disableBtn = {false} on:click = {handleGoBack}/>
     {/if}
 </div>
 <style>
@@ -146,6 +165,10 @@
         color : #000;
         border-radius : 1rem;
         box-shadow: 0px 8px 0px #ABABAB;
+    }
+    .selectedCategoryName {
+        font-style: italic;
+        font-size : 1rem;
     }
     .selectedCategory {
         background : #CF017D;

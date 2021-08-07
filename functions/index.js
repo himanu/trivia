@@ -1,6 +1,9 @@
 const functions = require("firebase-functions");
 const admin = require('firebase-admin');
 admin.initializeApp();
+const runtimeOpts = {
+  timeoutSeconds: 200
+}
 
 exports.updateIsOnlineKey = functions.database.ref('/trivia/{gameSessionId}/users/{userId}/online')
   .onUpdate((change,context)=>{
@@ -186,14 +189,14 @@ exports.changeToBeMadeWhenCurrentQuestionNumberChange = functions.database.ref('
     }
 
     let questionTimerRef = change.after.ref.parent.child('questionTimer');
-    return questionTimerRef.set(30).then(()=>{
+    return questionTimerRef.set(31).then(()=>{
       console.log('questionTimer is set');
     })
     .catch((err)=>{
       console.log('Error while setting questionTimer ',err);
     });
   })
-exports.startQuestionTimer = functions.database.ref('/trivia/{gameSessionId}/rounds/{roundValue}/questionTimer/')
+exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivia/{gameSessionId}/rounds/{roundValue}/questionTimer/')
   .onCreate(async(snapshot,context)=>{
     let questionTimer = snapshot.val();
     let questionTimerRef = snapshot.ref;
@@ -221,7 +224,7 @@ exports.startQuestionTimer = functions.database.ref('/trivia/{gameSessionId}/rou
 
           let lastTimer = setTimeout(()=>{
             Promise.all( [questionTimerRef.remove(),currentQuestionNumberRef.transaction( (count) => { 
-              if(count === 7 || count === 14) {
+              if(count === 4 || count === 9) {
                 pageRef.set('HalfTime').then(()=>{
                   console.log("Page is set to halftime");
                 })
@@ -229,7 +232,7 @@ exports.startQuestionTimer = functions.database.ref('/trivia/{gameSessionId}/rou
                   console.log('Error while setting page to halftime ',err);
                 });
               }
-              else if(count < 14){
+              else if(count < 9){
                 return count + 1;
               }
             })])
@@ -271,7 +274,7 @@ exports.setAllQuestions = functions.https.onCall(async(data)=>{
     let categoryName = allCategories[categoryId]['categoryName'];
     shuffle(categoryQuestions);
     
-    return Promise.all([allQuestionsRef.set(categoryQuestions.slice(0,15)),categoryNameRef.set(categoryName),pageRef.set('Welcome')]).then(()=>{
+    return Promise.all([allQuestionsRef.set(categoryQuestions.slice(0,10)),categoryNameRef.set(categoryName),pageRef.set('Welcome')]).then(()=>{
       console.log('Both are success');
     })
     .catch((err)=>{
@@ -289,7 +292,7 @@ function shuffle(array) {
 
 function increment(count,pageRef) {
   console.log('count ',count);
-  if(count === 7) {
+  if(count === 4) {
     pageRef.set('HalfTime').then(()=>{
       console.log("Page is set to halftime");
     })
@@ -298,7 +301,7 @@ function increment(count,pageRef) {
     });
     return;
   }
-  else if(count < 14) {
+  else if(count < 9) {
     return count + 1;
   }
   else {
