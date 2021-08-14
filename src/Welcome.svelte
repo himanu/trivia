@@ -28,6 +28,7 @@
     listenFirebaseKey(dbCategoryName,(dbCategoryNameRef)=>{
         dbCategoryNameRef.on('value',(snap)=>{
             if(!snap.val()) {
+                categoryName = undefined;
                 return;
             }
             categoryName = snap.val();
@@ -54,6 +55,9 @@
         hostId = snap.val();
         if(hostId === userId) {
             isHost = true;
+        }
+        else {
+            isHost = false;
         }
     })
     $: {
@@ -136,25 +140,35 @@
                 {#if isHost}
                     {#if !categoryName}
                         Select a category
-                    {:else}
-                        You have selected <span class = "categoryName">" {categoryName} "</span> category
+                    {:else if noOfOnlinePlayers >=2}
+                        Start the game
+                    {:else if noOfOnlinePlayers < 2}
+                        Waiting for others to join
+                        <div style = "font-size : 0.75rem; font-weight : 500; letter-spacing : 0.05rem">
+                            Need atleast {2 - noOfOnlinePlayers} more players to start the game
+                        </div>
                     {/if}
                 {:else}
                     {#if !categoryName && hostName}
                         Ask {hostName}(host) to select a category
-                    {:else if hostName} 
-                        {hostName} (Host) have selected <span class = "categoryName">" {categoryName} "</span> category
+                    {:else if noOfOnlinePlayers >= 2}
+                        Waiting for host to start the game
+                    {:else}
+                        Waiting for others to join
+                        <div style = "font-size : 0.75rem; font-weight : 500; letter-spacing : 0.05rem">
+                            Need atleast {2 - noOfOnlinePlayers} more players to start the game
+                        </div>
                     {/if}
                 {/if}
             </div>
             <div class = "playersContainer">
                 {#if hostId && users}
                     <div class="host">
-                        <div class = "imageContainer" title = {users[hostId].userName} style = "width : 6rem; height : 6rem ;border : 0.25rem solid {users[hostId].isOnline?"#40BB45":"#AC312F"}">
+                        <div class = "imageContainer" title = {users[hostId].userName} style = "width : 5rem; height : 5rem ;border : 0.25rem solid {users[hostId].isOnline?"#40BB45":"#AC312F"}">
                             {#if users[hostId].isOnline}
-                                <Tick/>
+                                <Tick iconSize = "1rem"/>
                             {:else}
-                                <DisconnectedSvg/>
+                                <DisconnectedSvg iconSize = "1rem"/>
                             {/if}
                             {#if validUserProfilePicture(users[hostId].profilePicture)}
                                 <img class = "profilePicture" src = "{users[hostId].profilePicture}"  alt = "profilePicture">
@@ -176,9 +190,9 @@
                             <div class="normalPlayer">
                                 <div class = "imageContainer" title = {currUser.userName} style = "border : 0.2rem solid {currUser.isOnline?"#40BB45":"#AC312F"}">
                                     {#if currUser.isOnline}
-                                        <Tick/>
+                                        <Tick iconSize = "0.7rem"/>
                                     {:else}
-                                        <DisconnectedSvg/>
+                                        <DisconnectedSvg iconSize = "0.75rem"/>
                                     {/if}
                                     {#if validUserProfilePicture(currUser.profilePicture)}
                                         <img class = "profilePicture"  src = "{currUser.profilePicture}" alt = "profilePicture">
@@ -197,12 +211,20 @@
                     {/each}
                 </div>
             </div>
+            {#if categoryName}
+                <div class="chooseCategoryContainer">
+                    Choosen category - <span class = "categoryName" title = {isHost?"":"Host can change the category"}> {categoryName} </span> 
+                    {#if isHost}
+                        <span class = "changeCategory" on:click = {handleChooseCategory}> (change) </span>
+                    {/if}
+                </div>
+            {/if}
             {#if isHost}
                 {#if !categoryName}
                     <CustomButton btnText = {"Choose Category"} on:click = {handleChooseCategory} disableBtn = {false}/>
                 {:else}
                     <div class="buttonContainer">
-                        <CustomButton btnText = {"Change Category"} on:click = {handleChooseCategory} />
+                        <!-- <CustomButton btnText = {"Change Category"} on:click = {handleChooseCategory} /> -->
                         <CustomButton btnText = {"Start Game"} on:click = {handleStartGame} disableBtn = {noOfOnlinePlayers < 2 || disableStartGameBtn} tooltipMsg = {noOfOnlinePlayers<2?"Number of online players are less than 2":""}/>
                         
                     </div>
@@ -214,22 +236,15 @@
     {/if}
 <style>
     ::-webkit-scrollbar {
-        width: 14px;
+        width: 10px;
     }
-    /* Track */
     ::-webkit-scrollbar-track {
-        background : initial;
-        border-radius : 7px;
+        background-color: transparent;
     }
-
-    /* Handle */
     ::-webkit-scrollbar-thumb {
-        background: #172072;;
-        border-radius : 7px;
-        border : 4px solid #343E98;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-        background: #0e1346;
+        background-color : #ABABAB;
+        border : 2px solid none;
+        border-radius: 5px;
     }
     .welcomeContainer {
         display : flex;
@@ -237,11 +252,10 @@
         align-items: center;
         height : 100%;
     }
-    .categoryName {
-        font-style: italic;
-    }
     .playersContainer {
         margin : auto;
+        max-height : 70vh;
+        overflow-y : auto;
     }
     .host,.normalPlayer {
         display: flex;
@@ -251,8 +265,8 @@
     }
     .imageContainer {
         position: relative;
-        width : 5rem;
-        height : 5rem;
+        width : 3rem;
+        height : 3rem;
         border-radius : 50%;
         display : flex;
         justify-content: center;
@@ -297,12 +311,29 @@
         font-size : 1rem;
         font-weight : 700;
         color : #fff;
-        margin-top : 2rem;
+        margin : 1rem 0rem;
+        text-align : center;
+        line-height: 1.5rem;
     }
     .buttonContainer {
         display : flex;
         gap : 1rem;
         justify-content: center;
         align-items: center;
+    }
+    .chooseCategoryContainer {
+        font-family : 'Manrope';
+        font-size : 0.85rem;
+        font-weight : 400;
+        color : #fff;
+        margin : 1rem 0rem;
+        letter-spacing : 0.025rem;
+    }
+    .categoryName {
+        font-weight: 700;
+    }
+    .changeCategory {
+        color : #ccc;
+        cursor : pointer;
     }
 </style>

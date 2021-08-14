@@ -15,8 +15,8 @@
     <TriviaIcon/>
     {#if user?.isOnline === false}
         <div class="offlineMsg">
-            You are offline!. <br>
-            Please check your connection or reload.
+            You are offline! <br>
+            Please check your internet connection or reload
         </div>
     {/if}
 </div>
@@ -25,6 +25,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        height : 100%;
     }
     .offlineMsg {
         margin : auto;
@@ -32,5 +33,7 @@
         font-family : 'Manrope';
         font-size : 2rem;
         font-weight : 700;
+        text-align :center;
+        line-height : 2.5rem;
     }
 </style>

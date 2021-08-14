@@ -12,12 +12,11 @@
     let borderColor = "#27AE60";
     let questionTimer;
     let time = 0;
-    let setTimeoutInterval;
     let remTime;
-    let currTime;
-    let stroke = 0;
-    let stroke1 = 400  - stroke;
-
+    
+    let interval;
+    let timeToShow;
+    
     listenFirebaseKey((dbCurrentQuestionNumber),(dbCurrentQuestionNumberRef)=>{
         dbCurrentQuestionNumberRef.on('value',(snap)=>{
             if(!snap.exists()) {
@@ -26,12 +25,22 @@
             currentQuestionNumber = snap.val();
             selectedOptionId = undefined;
             time = 0;
-            clearInterval(setTimeoutInterval);
-            setTimeoutInterval =  setTimeout(()=>{
-                time += 1;
+            clearTimeout(interval);
+            interval = setTimeout(()=>{
+                time = 1;
             },1000);
         })
     })
+    $: {
+        if(time === 0) {
+            interval = setTimeout(()=>{
+                time = 1;
+            },1000);
+        }
+        else {
+            clearTimeout(interval);
+        }
+    }
     let opacityOfContainer;
     $: {
         if(time === 0) {
@@ -41,19 +50,35 @@
             opacityOfContainer = 1;
         }
     }
+
+    let setIntervalInterval;
+    let stroke = 0;
+    //370 for full screen
+    let maxValueOfStroke = 384;
+    // -65 for full screen
+    let strokeDashOffset = -63;
+    let stroke1 = maxValueOfStroke  - stroke;
+    let elapsed;
+    let initialTime = 31;
+
     listenFirebaseKey(dbQuestionTimer,(dbQuestionTimerRef)=>{
         dbQuestionTimerRef.on('value',(snap)=>{
             if(!snap.exists()) {
                 questionTimer = undefined;
                 return;
             }
+            initialTime = snap.val();
             if(snap.val() >= 31) {
                 remTime = 30;
             }
             else {
                 remTime = snap.val();
             }
+            // questionTimer = remTime/1000;
             questionTimer = remTime;
+            if(Number.isInteger(questionTimer)) {
+                timeToShow = questionTimer;
+            }
             if(questionTimer > 15) {
                 borderColor = "#27AE60";
             }
@@ -63,22 +88,23 @@
             else if(questionTimer > 0) {
                 borderColor = "#C81919";
             }
+            clearInterval( setIntervalInterval );
+            if(initialTime < 31) {
+                setStroke();
+            }
         })
     })
-    let interval;
-    
-    $:{
-        if(interval) {
-            clearInterval(interval);
-        } 
-        interval = setInterval(()=>{
-            remTime = remTime - (10/1000);
-            console.log(remTime);
-            currTime = 30 - remTime;
-            stroke = (currTime*(400))/30;
-            stroke1 = 400 - stroke
-            if(( remTime ) <=0) {
-                clearInterval(interval);
+    function setStroke() {
+        setIntervalInterval = setInterval(()=>{
+            initialTime = initialTime - 10/1000;
+            if(initialTime < 0) {
+                clearInterval(setIntervalInterval);
+                stroke = 0;
+                stroke1 = maxValueOfStroke - stroke;
+            }
+            else {
+                stroke = (30 - initialTime)*(maxValueOfStroke)/30;
+                stroke1 = maxValueOfStroke - stroke;
             }
         },10);
     }
@@ -143,7 +169,7 @@
                 borderColor = "#27AE60";
             }
             else if(selectedOptionId != undefined){
-                borderColor = "#EB5757";
+                borderColor = "#C81919";
             }
             else {
                 borderColor = "#6C44A8";
@@ -161,7 +187,7 @@
         })
     }
     let colorMap = {
-        0 : "#EB5757",
+        0 : "#C81919",
         1 : "#27AE60",
         2 : "#C4C4C4",
         3 : "#6C44A8"
@@ -181,27 +207,35 @@
     {/if}
     <TriviaIcon/>
     <div class = "answerScreenContainer" in:fly ="{{ y: -20, duration: 1000 }}" style = "opacity : {opacityOfContainer}">
-        <svg class = "svg" width = "100%" height = "100%">
-			<rect x="0" y="0" width="100%" height="100%" rx = "1rem" ry = "1rem" fill = "{borderColor}" stroke-dashoffset = "-60%" stroke-dasharray = "{stroke + '%'} , {stroke1 + '%'}"/>
-        </svg>
-        <div class="answerScreen">
-            {#if questionTimer != undefined}
-                <div class="questionTimer" style = "background : {borderColor}">
-                    {#if questionTimer > 9}
-                        0:{questionTimer}
-                    {:else if questionTimer > 0}
-                        0:0{questionTimer}
-                    {:else if questionTimer === 0}
-                        {#if answerOptionId === selectedOptionId}
-                            Correct!
-                        {:else if selectedOptionId != undefined}
-                            Wrong!
-                        {:else}
-                            Times Up!
-                        {/if}
+        {#if questionTimer != undefined}
+            <div class="questionTimer" style = "background : {borderColor}">
+                {#if timeToShow > 9}
+                    0:{timeToShow}
+                {:else if timeToShow > 0}
+                    0:0{timeToShow}
+                {:else if timeToShow === 0}
+                    {#if answerOptionId === selectedOptionId}
+                        Correct!
+                    {:else if selectedOptionId != undefined}
+                        Wrong!
+                    {:else}
+                        Times Up!
                     {/if}
-                </div>
-            {/if}
+                {/if}
+            </div>
+        {:else }
+            <div class="questionTimer" style = "background : {borderColor}">
+                0:00
+            </div>
+        {/if}
+
+        <div class="svgContainer">
+            <svg class = "svg" width = "100%" height = "100%">
+                <rect x="0" y="0" width="100%" height="100%"  fill = "{borderColor}" stroke-dashoffset = "{strokeDashOffset + '%'}" stroke-dasharray = "{stroke + '%'} , {stroke1 + '%'}"/>
+            </svg>
+        </div>
+
+        <div class="answerScreen">
             <div class="question">
                 {#if currentQuestionText}
                     {currentQuestionText}
@@ -281,7 +315,7 @@
         margin : auto 0;
         padding : 0rem 1rem;
         width : 60vw;
-        min-height : 26vw;
+        min-height : 50vh;
         position : relative;
     }
     @media screen and (max-width : 1200px) {
@@ -299,11 +333,26 @@
             width : 90vw;
         }
     }
-    
+    @media screen and (max-height : 600px) {
+        .answerScreenContainer {
+            min-height : 60vh;
+        }
+    }
+    @media screen and (max-height : 400px) {
+        .answerScreenContainer {
+            min-height : 75vh;
+        }
+    }
+    .svgContainer {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 1rem;
+        overflow: hidden;
+    }
     .svg > *{
-		stroke-width: 1rem;
+		stroke-width: 2rem;
 		stroke: #ccc;
-        stroke-linecap: round;
 	}
     .answerScreen {
         background-color: #fff;
@@ -318,6 +367,7 @@
         left : 50%;
         transform : translate(-50%,-50%);
         border-radius: 1rem;
+        overflow-y : scroll;
     }
     .question {
         font-family : 'Manrope';
@@ -345,6 +395,9 @@
         font-family: 'Manrope';
         font-size : 0.75rem;
         font-weight : 700;
+        display : flex;
+        justify-content: center;
+        align-items : center;
     }
     .selectedOption {
         color : #fff;
@@ -360,14 +413,11 @@
         color : #fff;
     }
     @keyframes animateOption {
-         0% {
-            font-size : 0.75rem;
-        }
-        50% {
-            font-size : 1.25rem;
+        0% {
+            transform: scale(1);
         }
         100% {
-            font-size : 0.75rem;
+            transform: scale(1.1);
         }
     }
     .questionTimer {
@@ -377,7 +427,7 @@
         font-weight : 700;
         color : #fff;
         position : absolute;
-        bottom : 100%;
+        bottom : calc(100% - 0.5rem);
         left : 50%;
         transform: translateX(-50%);
         border-radius : 0.25rem;

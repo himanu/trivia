@@ -1,9 +1,11 @@
 <script>
     import TriviaIcon from './TriviaIcon.svelte';
     import {getParams} from './utils';
-    import {dbUser,dbUsers,dbHost,dbAllQuestion,listenFirebaseKey,dbPage,dbCurrentQuestionNumber,dbGameSessionRoundValue} from './database';
+    import {dbUser,dbUsers,dbHost,dbAllQuestion,listenFirebaseKey,dbPage,dbCurrentQuestionNumber,dbGameSessionRoundValue,dbHalfTimer} from './database';
     import {fly} from 'svelte/transition';
     import CustomButton from './CustomButton.svelte';
+    import YouAreOffline from './YouAreOffline.svelte';
+
     let userId = getParams('userId');
     let users;
     let usersArray = [];
@@ -13,6 +15,7 @@
     let allQuestions;
     let currentQuestionNumber;
     let roundValue;
+    let halfTime = 10;
 
     dbGameSessionRoundValue.on('value',(snap)=>{
         if(!snap.exists()) {
@@ -26,6 +29,16 @@
                 return;
             }
             currentQuestionNumber = snap.val();
+        })
+    })
+
+    listenFirebaseKey(dbHalfTimer,(dbHalfTimerRef)=>{
+        dbHalfTimerRef.on('value',(snap)=>{
+            if(!snap.exists()) {
+                halfTime = 0;
+                return;
+            }
+            halfTime = snap.val();
         })
     })
 
@@ -52,6 +65,8 @@
     })
     let scoreOfUser = {};
     let scoreLeader;
+    let scoreLeaderName;
+    let isItTie = false;
     $: {
         if(allQuestions && users && currentQuestionNumber) {
             scoreOfUser = {};
@@ -88,7 +103,15 @@
                 return b.score - a.score;
             })
             usersArray = usersArray;
-            scoreLeader = processName(usersArray[0].user);
+            if(usersArray.length === 1 || (usersArray.length>1 && usersArray[0].score > usersArray[1].score)) {
+                scoreLeader = usersArray[0].user;
+                scoreLeaderName = processName(usersArray[0].user);
+                isItTie = false;
+            }
+            else if(usersArray.length) {
+                scoreLeader = usersArray[0].user;
+                isItTie = true;
+            }
             console.log('usersArray after sorting ',usersArray);
         }
     }
@@ -140,11 +163,8 @@
     }
     async function handleContinueButton() {
         if(currentQuestionNumber === 4) {
-            listenFirebaseKey(dbPage,(dbPageRef)=>{
-                dbPageRef.set('Game');
-            });
-            listenFirebaseKey(dbCurrentQuestionNumber,(dbCurrentQuestionNumberRef)=>{
-                dbCurrentQuestionNumberRef.set(5);
+            listenFirebaseKey(dbHalfTimer,(dbHalfTimerRef)=>{
+                dbHalfTimerRef.set(0);
             })
         }
         else if(currentQuestionNumber === 9) {
@@ -190,59 +210,89 @@
         }
     }
 </script>
-<div class="halfTime">
-    <TriviaIcon/>
-    <div class = "heading">
-        {#if currentQuestionNumber === 4}
-            Half Time!
-        {:else if currentQuestionNumber === 9}
-            Leaderboard
-        {/if}
-    </div>
-    <div class="message">
-        {#if currentQuestionNumber === 4}
-            5 more question to go
-        {:else if currentQuestionNumber === 9}
-            {scoreLeader} is leading!
-        {/if}
-    </div>
-    <div class = 'usersContainer' in:fly ="{{ y: -20, duration: 1000 }}">
-        <div class="usersList">
-            <div class="users">
-                {#each usersArray as currUser}
-                    <div class="user" class:you = {currUser.user.id === userId}>
-                        <div class="userDetails">
-                            {#if validUserProfilePicture(currUser.user.profilePicture)}
-                                <img class = "profilePicture" src = {currUser.user.profilePicture} alt = "UserProfilePicture">
-                            {:else}
-                                <div class="fakeProfilePicture"> {currUser.user.userName[0].toUpperCase()} </div>
-                            {/if}
-                            {#if currUser.user.id === hostId}
-                                <div class = "name">
-                                    {hostName}
-                                </div>
-                            {:else}
-                                <div class = "name">
-                                    {processName(currUser.user)} 
-                                </div>
-                            {/if}
-                        </div>
-                        <div class="userScore" title = {scoreRemarkMap[calculateGrade(scoreOfUser[currUser.user.id],currentQuestionNumber + 1)]} style = "background : {backgroundColorMap[calculateGrade(scoreOfUser[currUser.user.id],currentQuestionNumber + 1)]}">
-                            {scoreOfUser[currUser.user.id] !== undefined? scoreOfUser[currUser.user.id] : 0}/{currentQuestionNumber + 1}
-                        </div>
+{#if usersArray.length}
+    <div class="halfTime">
+        <TriviaIcon/>
+        <div class = "heading">
+            {#if currentQuestionNumber === 4}
+                <div class="text">
+                    Half Time!
+                </div>
+            {:else if currentQuestionNumber === 9}
+                {#if !isItTie && scoreLeader}
+                    <div class="text">
+                        {scoreLeader.id === userId?"You ":scoreLeaderName} won!
                     </div>
-                {/each}
+                    <div class="icon">
+                        
+                    </div>
+                {:else if isItTie}
+                    <div class="text">
+                        It's a tie!
+                    </div>
+                    <div class="icon">
+                        
+                    </div>
+                {/if}
+            {/if}
+        </div>
+        <div class="message">
+            {#if currentQuestionNumber === 4}
+                5 more questions to go
+            {:else if currentQuestionNumber === 9}
+                {#if scoreOfUser[userId] < scoreOfUser[scoreLeader.id]}
+                    Better luck next time
+                {:else if !isItTie}
+                    Well played
+                {/if}
+            {/if}
+        </div>
+        <div class = 'usersContainer' in:fly ="{{ y: -20, duration: 1000 }}">
+            <div class="usersList">
+                <div class="users">
+                    {#each usersArray as currUser}
+                        <div class="user" class:you = {currUser.user.id === userId} class:winner = {currUser.user.id === scoreLeader.id}>
+                            <div class="userDetails">
+                                {#if validUserProfilePicture(currUser.user.profilePicture)}
+                                    <img class = "profilePicture" src = {currUser.user.profilePicture} alt = "UserProfilePicture">
+                                {:else}
+                                    <div class="fakeProfilePicture"> {currUser.user.userName[0].toUpperCase()} </div>
+                                {/if}
+                                {#if currUser.user.id === hostId}
+                                    <div class = "name">
+                                        {hostName}
+                                    </div>
+                                {:else}
+                                    <div class = "name">
+                                        {processName(currUser.user)} 
+                                    </div>
+                                {/if}
+                            </div>
+                            <div class="userScore" title = {scoreRemarkMap[calculateGrade(scoreOfUser[currUser.user.id],currentQuestionNumber + 1)]} style = "background : {backgroundColorMap[calculateGrade(scoreOfUser[currUser.user.id],currentQuestionNumber + 1)]}">
+                                {scoreOfUser[currUser.user.id] !== undefined? scoreOfUser[currUser.user.id] : 0}/{currentQuestionNumber + 1}
+                            </div>
+                        </div>
+                    {/each}
+                </div>
             </div>
         </div>
+        {#if currentQuestionNumber === 4}
+            <div class="message1">
+                Continuing in {halfTime} sec...
+            </div>
+        {/if}
+        {#if !isHost}
+            <div class="message1" style = "margin-top : 0rem">
+                Host can continue the game!
+            </div>
+        {/if}
+        {#if isHost}
+            <CustomButton btnText = {currentQuestionNumber === 4?"Continue":"New Game"} on:click = {handleContinueButton}/>
+        {/if}
     </div>
-    {#if isHost}
-        <CustomButton btnText = {currentQuestionNumber === 4?"Continue":"New Game"} on:click = {handleContinueButton}/>
-    {:else}
-        <div class="message message1">
-            Only {hostName} can continue the game.
-        </div>
-    {/if}
-</div>
+{:else}
+    <YouAreOffline/>
+{/if}
 <style>
     ::-webkit-scrollbar {
         width: 10px;
@@ -276,8 +326,11 @@
         margin-top : 1rem;
     }
     .message1 {
+        font-family : 'Manrope';
         font-weight : 700;
         font-size : 0.85rem;
+        color : #fff;
+        margin : 1rem;
     }
     .usersContainer{
         width : 30%;
@@ -331,6 +384,7 @@
         display : flex;
         flex-direction: column;
         padding : 2px;
+        gap : 0.25rem;
     }
     .user {
         display : flex;
@@ -344,6 +398,14 @@
         border-radius : 0.5rem;
     }
     .you .name {
+        color : #fff;
+    }
+    .winner {
+        background : #FFB64A;
+        color : #fff;
+        border-radius : 0.5rem;
+    }
+    .winner .name {
         color : #fff;
     }
     .userDetails {

@@ -67,7 +67,8 @@
                     {
                         "categoryName" : allCategories[id]['categoryName'],
                         "categoryId" : id
-                    });
+                    }
+                );
             }
             allCategriesTitle = allCategriesTitle;
         }
@@ -82,14 +83,16 @@
         }
         selectedCategoryId = category.categoryId;
     }
-    function confirmCategory() {
+    let disableConformCategoryBtn = false;
+    async function confirmCategory() {
         console.log('Conform category is called');
-        changePageToChooseCategory.set(0);
-        setAllQuestions({
+        disableConformCategoryBtn = true;
+        await setAllQuestions({
             "categoryId" : selectedCategoryId,
             roundValue,
             gameSessionId
         });
+        handleGoBack();
     }
     function handleGoBack() {
         changePageToChooseCategory.update((value) => value - 1);
@@ -117,7 +120,7 @@
         {/each}
     </div>
     {#if isHost}
-        <CustomButton btnText = "Confirm Category" tooltipMsg = {selectedCategoryId === undefined?"Please select one of the category":""} disableBtn = {selectedCategoryId === undefined} on:click = {confirmCategory}/>
+        <CustomButton btnText = "Confirm Category" tooltipMsg = {selectedCategoryId === undefined?"Please select one of the category":""} disableBtn = {(selectedCategoryId === undefined) || disableConformCategoryBtn} on:click = {confirmCategory}/>
     {:else}
         <CustomButton btnText = "Go back" disableBtn = {false} on:click = {handleGoBack}/>
     {/if}
@@ -153,9 +156,14 @@
         gap : 1rem;
         margin : auto;
         overflow-y : auto;
-        max-height : 200px;
+        max-height : 50vh;
         min-width : 60vw;
         padding : 0rem 0.5rem;
+    }
+    @media screen and (max-height : 500px) {
+        .categoriesList {
+            grid-template-columns: repeat(1,1fr);
+        }
     }
     .category {
         display : flex;

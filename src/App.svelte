@@ -70,14 +70,14 @@
 	}
 </script>
 <main>
-	{#if page === 'Welcome'}
+	{#if !user?.isOnline}
+		<YouAreOffline/>
+	{:else if page === 'Welcome'}
 		<Welcome/>
 	{:else if page === "Game"}
 		<Game/>
 	{:else if page === 'HalfTime'}
 		<HalfTime/>
-	{:else if !user?.isOnline}
-		<YouAreOffline/>
 	{/if}
 </main>
 

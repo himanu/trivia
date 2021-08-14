@@ -67,6 +67,7 @@ export const dbScoreOfUser = dbScoreOfUsers.child(getParams('userId'));
 export const dbGameSessionRound = ()=> dbGameSessionRounds.child(getRoundValue());
 export const dbPage = ()=> dbGameSessionRound().child('page');
 export const dbTimer = ()=> dbGameSessionRound().child('timer');
+export const dbHalfTimer = ()=> dbGameSessionRound().child('halfTimer');
 export const dbCurrentQuestionNumber = ()=> dbGameSessionRound().child('currentQuestionNumber');
 export const dbAllQuestion = ()=> dbGameSessionRound().child('allQuestions');
 export const dbCategoryName = ()=> dbGameSessionRound().child('categoryName');

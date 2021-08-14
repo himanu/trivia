@@ -202,7 +202,8 @@ exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivi
     let questionTimerRef = snapshot.ref;
     let currentQuestionNumberRef = snapshot.ref.parent.child('currentQuestionNumber');
     let pageRef = snapshot.ref.parent.child('page');
-    
+    let halfTimerRef = snapshot.ref.parent.child('halfTimer');
+
     return new Promise(async (resolve,reject)=>{
       let interval = setInterval(async()=>{
         let questionTimerSnap = await questionTimerRef.get();
@@ -213,7 +214,7 @@ exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivi
           return;
         }
         questionTimer = questionTimerSnap.val();
-        console.log('questionTimer ',questionTimer);
+        // console.log('questionTimer ',questionTimer);
         
         if(questionTimer >= 1) {
           questionTimer = questionTimer - 1;
@@ -221,10 +222,18 @@ exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivi
         }
         else {
           clearInterval(interval);
-
           let lastTimer = setTimeout(()=>{
             Promise.all( [questionTimerRef.remove(),currentQuestionNumberRef.transaction( (count) => { 
-              if(count === 4 || count === 9) {
+              if(count === 4) {
+                Promise.all([pageRef.set('HalfTime'),halfTimerRef.set(10)])
+                .then(()=>{
+                  console.log('Page is set to halftime and timer to 30');
+                })
+                .catch((err)=>{
+                  console.log('Some error occur ',err);
+                })
+              }
+              else if(count === 9) {
                 pageRef.set('HalfTime').then(()=>{
                   console.log("Page is set to halftime");
                 })
@@ -286,6 +295,42 @@ exports.setAllQuestions = functions.https.onCall(async(data)=>{
   }
 })
 
+exports.startHalfTimer = functions.runWith(runtimeOpts).database.ref('/trivia/{gameSessionId}/rounds/{roundValue}/halfTimer/')
+  .onCreate(async(snapshot,context)=>{
+    let halfTimerRef = snapshot.ref;
+    let pageRef = snapshot.ref.parent.child('page');
+    let currentQuestionNumberRef = snapshot.ref.parent.child('currentQuestionNumber');
+    let interval;
+    return new Promise((resolve,reject)=>{
+      interval = setInterval(async()=>{
+        let timerValue;
+        let timerSnap;
+        timerSnap =  await halfTimerRef.get();
+        if(!timerSnap.exists() || timerSnap.val() === undefined) {
+          clearInterval(interval);
+          resolve();
+          return;
+        }
+        timerValue = timerSnap.val();
+        if(timerValue >= 1) {
+          halfTimerRef.set(timerValue - 1);
+        }
+        else if(timerValue === 0) {
+          Promise.all([pageRef.set('Game'),currentQuestionNumberRef.transaction(count => count + 1),halfTimerRef.remove()])
+          .then(()=>{
+            console.log('page is set to game, question number is incremented and half timer is removed');
+            clearInterval(interval);
+            resolve();
+          })
+          .catch((err)=>{
+            console.log('error ',err);
+            clearInterval(interval);
+            resolve();
+          });
+        }
+      },1000);
+    })
+  })
 function shuffle(array) {
   array.sort(() => Math.random() - 0.5);
 }

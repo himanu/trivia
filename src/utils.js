@@ -88039,9 +88039,6 @@ export const categoryObject = {
         ]
     }
 
-
-
-
 function areTwoEqual(s1,s2) {
   // console.log('s1 ',s1, ' s2 ',s2);
   return s2.toString().replace(/[^a-zA-Z]/g, "").toLowerCase() === s1.toString().replace(/[^a-zA-Z]/g, "").toLowerCase();
@@ -88073,5 +88070,16 @@ for(const categoryName in categoryObject) {
   allCategoriesObj[i] = currentCategoryObject;
   i += 1;
 }
+
+let globalObj = {};
+for(const categoryName in categoryObject) {
+  let obj = {};
+  let arr = categoryObject[categoryName];
+  arr.forEach((object)=>{
+    obj[ object["SUB TOPIC"] ] = true;
+  })
+  globalObj[categoryName] = obj;
+}
+console.log('globalObj ',globalObj);
 export const allCategoriesObject = allCategoriesObj;
   
