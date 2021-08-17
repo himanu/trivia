@@ -1,9 +1,10 @@
 <script>
     import TriviaIcon from './TriviaIcon.svelte';
-    import {dbCurrentQuestionNumber,listenFirebaseKey,dbAllQuestion, dbQuestionTimer} from './database'
+    import {dbCurrentQuestionNumber,listenFirebaseKey,dbAllQuestion, dbQuestionTimer,dbUsers} from './database'
     import { getParams } from './utils';
     import {fly} from 'svelte/transition';
     import RoundIndicator from './RoundIndicator.svelte';
+    import {info} from './Notifier';
 
     let currentQuestionNumber;
     let allQuestions;
@@ -13,6 +14,7 @@
     let questionTimer;
     let time = 0;
     let remTime;
+    let users;
     
     let interval;
     let timeToShow;
@@ -25,12 +27,36 @@
             currentQuestionNumber = snap.val();
             selectedOptionId = undefined;
             time = 0;
-            clearTimeout(interval);
-            interval = setTimeout(()=>{
-                time = 1;
-            },1000);
+            // clearTimeout(interval);
+            // interval = setTimeout(()=>{
+            //     time = 1;
+            // },1000);
         })
     })
+    dbUsers.on('value',(snap)=>{
+        if(!snap.exists()) {
+            return;
+        }
+        users = snap.val();
+    })
+    let noOfOnlinePlayers = 0;
+    $: {
+        if(users) {
+            noOfOnlinePlayers = 0;
+            for(const id in users) {
+                if(users[id].isOnline === true) {
+                    noOfOnlinePlayers += 1;
+                }
+            }
+            if(noOfOnlinePlayers <= 1) {
+                dbGameSessionRoundValue.transaction((count)=>{
+                    return count + 1;
+                }).then(()=>{
+                    info(`Game can't be continued due to less number of online players`,`Disconnected`,5000);
+                })
+            }
+        }
+    }
     $: {
         if(time === 0) {
             interval = setTimeout(()=>{
@@ -63,17 +89,20 @@
 
     listenFirebaseKey(dbQuestionTimer,(dbQuestionTimerRef)=>{
         dbQuestionTimerRef.on('value',(snap)=>{
+
             if(!snap.exists()) {
-                questionTimer = undefined;
                 return;
             }
-            initialTime = snap.val();
-            if(snap.val() >= 31) {
-                remTime = 30;
-            }
             else {
-                remTime = snap.val();
+                initialTime = snap.val();
+                if(snap.val() >= 31) {
+                    remTime = 30;
+                }
+                else {
+                    remTime = snap.val();
+                }
             }
+    
             // questionTimer = remTime/1000;
             questionTimer = remTime;
             if(Number.isInteger(questionTimer)) {
@@ -108,11 +137,7 @@
             }
         },10);
     }
-    $: {
-        if(currentQuestionNumber === 14 & questionTimer === undefined) {
-            questionTimer = 0;
-        }
-    }
+    
     listenFirebaseKey(dbAllQuestion,(dbAllQuestionsRef)=>{
         dbAllQuestionsRef.on('value',(snap)=>{
             if(!snap.exists()) {
@@ -406,7 +431,7 @@
     .correctOption {
         background : #27AE60;
         color : #fff;
-        animation  : animateOption 3s 1
+        animation  : animateOption 2s 1
     }
     .wrongOption {
         background: #EB5757;
@@ -416,8 +441,11 @@
         0% {
             transform: scale(1);
         }
-        100% {
+        50% {
             transform: scale(1.1);
+        }
+        100% {
+            transform: scale(1);
         }
     }
     .questionTimer {

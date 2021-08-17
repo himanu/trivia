@@ -156,7 +156,7 @@ exports.setTimerTo0WhenEveryoneHaveAnswered = functions.database.ref(`/trivia/{g
       console.log('users ',users);
       let f = 0;
       for(const userId in users) {
-        if(users[userId].isOnline === true && usersAnswers[userId] === undefined) {
+        if(users[userId].isOnline === true && (usersAnswers[userId] === undefined || usersAnswers[userId] === null) ) {
           f = 1;
           break;
         }
@@ -167,13 +167,13 @@ exports.setTimerTo0WhenEveryoneHaveAnswered = functions.database.ref(`/trivia/{g
       }
       else {
         console.log('All users have given answer');
-        let questionTimerRef,questionTimerSnap;
-        questionTimerRef = change.after.ref.parent.parent.parent.child('questionTimer');
-        return questionTimerRef.set(0).then(()=>{
-          console.log('question Timer is set to 0');
+        let questionTimerRef = change.after.ref.parent.parent.parent.child('questionTimer');
+        questionTimerRef.set(0)
+        .then(()=>{
+          console.log('Question timer  is changed to 0');
         })
         .catch((err)=>{
-          console.log('Some error occur while setting question Timer to 0 ',err);
+          console.log('Some error occur ',err);
         });
       }
      }
@@ -181,10 +181,68 @@ exports.setTimerTo0WhenEveryoneHaveAnswered = functions.database.ref(`/trivia/{g
       console.log('Something went wrong ',err);
     }
   })  
+
+exports.setTimerOnChangeOfNumberOfOnlineUsers = functions.database.ref(`/trivia/{gameSessionId}/users`)
+  .onUpdate(async(change,context)=>{
+    return new Promise(async(resolve,reject)=>{
+      let users = change.after.val();
+      let roundValueRef = change.after.ref.parent.child('roundValue');
+      let roundValueSnap = await roundValueRef.get().catch((err)=>{
+        console.log('err ',err);
+        resolve();
+      });
+      if(!roundValueSnap.exists() || !roundValueSnap.val() ) {
+        resolve();
+        return ;
+      }
+      let roundValue = roundValueSnap.val();
+      let currentQuestionNumberRef = change.after.ref.parent.child('rounds').child(roundValue).child('currentQuestionNumber');
+      let allQuestionsRef = change.after.ref.parent.child('rounds').child(roundValue).child('allQuestions');
+      let allQuestions,currentQuestionNumber;
+      
+      Promise.all([currentQuestionNumberRef.get(),allQuestionsRef.get()])
+      .then((snap)=>{
+        currentQuestionNumber =  snap[0].val();
+        allQuestions = snap[1].val();
+        if(!allQuestions || !currentQuestionNumber) {
+          resolve();
+          return;
+        }
+        let allOnlineUsersHaveGivenAnswer = true;
+        for(const userId in users) {
+          if(users[userId].isOnline === true && !allQuestions[currentQuestionNumber]['usersAnswers'][userId]) {
+            allOnlineUsersHaveGivenAnswer = false;
+            break;
+          }
+        }
+        if(allOnlineUsersHaveGivenAnswer) {
+          console.log('all online users have given the answer');
+          let questionTimerRef = allQuestionsRef.parent.child('questionTimer');
+          questionTimerRef.set(0).then(()=>{
+            console.log('Question timer is set to 0');
+            resolve();
+          })
+          .catch((err)=>{
+            console.log('Error ',err);
+            resolve();
+          })
+        }
+        else {
+          resolve();
+        }
+      })
+      .catch((err)=>{
+        console.log('error ',err);
+        resolve();
+      })
+    })
+  })
+
+
 exports.changeToBeMadeWhenCurrentQuestionNumberChange = functions.database.ref('/trivia/{gameSessionId}/rounds/{roundValue}/currentQuestionNumber/')
   .onWrite((change,context)=>{
     if(!change.after.exists()) {
-      console.log('current Question number donot exists');
+      console.log('current Question number do not exists');
       return null;
     }
 
@@ -206,28 +264,20 @@ exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivi
 
     return new Promise(async (resolve,reject)=>{
       let interval = setInterval(async()=>{
-        let questionTimerSnap = await questionTimerRef.get();
-        if(!questionTimerSnap.exists()) {
-          console.log('question timer not exist so clearing the interval');
-          clearInterval(interval);
-          resolve();
-          return;
-        }
+        //First get the question timer status
+        let questionTimerSnap = await questionTimerRef.get().catch((err)=>{console.log('Unable to get question timer ',err)});
         questionTimer = questionTimerSnap.val();
-        // console.log('questionTimer ',questionTimer);
-        
-        if(questionTimer >= 1) {
-          questionTimer = questionTimer - 1;
-          questionTimerRef.set(questionTimer);
-        }
-        else {
+
+        questionTimer = questionTimer - 1;
+        if(questionTimer <= 0) {
+          questionTimerRef.set(0);
           clearInterval(interval);
           let lastTimer = setTimeout(()=>{
             Promise.all( [questionTimerRef.remove(),currentQuestionNumberRef.transaction( (count) => { 
               if(count === 4) {
                 Promise.all([pageRef.set('HalfTime'),halfTimerRef.set(10)])
                 .then(()=>{
-                  console.log('Page is set to halftime and timer to 30');
+                  console.log('Page is set to halftime and timer to 10');
                 })
                 .catch((err)=>{
                   console.log('Some error occur ',err);
@@ -257,6 +307,17 @@ exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivi
             });
 
           },4000);
+        }
+        else {
+          if(questionTimer) {
+            questionTimerRef.set(questionTimer)
+            .then(()=>{
+              console.log('Question timer is decremented');
+            })
+            .catch((err)=>{
+              console.log('Some error occurred while decrementing the question timer value ',err);
+            })
+          }
         }
       },1000);
     });
@@ -301,21 +362,21 @@ exports.startHalfTimer = functions.runWith(runtimeOpts).database.ref('/trivia/{g
     let pageRef = snapshot.ref.parent.child('page');
     let currentQuestionNumberRef = snapshot.ref.parent.child('currentQuestionNumber');
     let interval;
+    let timerValue = snapshot.val();
+
     return new Promise((resolve,reject)=>{
+
       interval = setInterval(async()=>{
-        let timerValue;
-        let timerSnap;
-        timerSnap =  await halfTimerRef.get();
-        if(!timerSnap.exists() || timerSnap.val() === undefined) {
+        let halfTimerSnap =  await halfTimerRef.get();
+        if(!halfTimerSnap.exists() || halfTimerSnap.val() === undefined) {
           clearInterval(interval);
           resolve();
           return;
         }
-        timerValue = timerSnap.val();
-        if(timerValue >= 1) {
-          halfTimerRef.set(timerValue - 1);
-        }
-        else if(timerValue === 0) {
+        timerValue = halfTimerSnap.val();
+        timerValue = timerValue - 1;
+        if( timerValue <= 0) {
+          await halfTimerRef.set(0);
           Promise.all([pageRef.set('Game'),currentQuestionNumberRef.transaction(count => count + 1),halfTimerRef.remove()])
           .then(()=>{
             console.log('page is set to game, question number is incremented and half timer is removed');
@@ -328,6 +389,9 @@ exports.startHalfTimer = functions.runWith(runtimeOpts).database.ref('/trivia/{g
             resolve();
           });
         }
+        else {
+          halfTimerRef.set(timerValue);
+        }
       },1000);
     })
   })
@@ -335,21 +399,3 @@ function shuffle(array) {
   array.sort(() => Math.random() - 0.5);
 }
 
-function increment(count,pageRef) {
-  console.log('count ',count);
-  if(count === 4) {
-    pageRef.set('HalfTime').then(()=>{
-      console.log("Page is set to halftime");
-    })
-    .catch((err)=>{
-      console.log('Error while setting page to halftime ',err);
-    });
-    return;
-  }
-  else if(count < 9) {
-    return count + 1;
-  }
-  else {
-    return;
-  }
-}

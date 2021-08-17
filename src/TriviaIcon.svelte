@@ -32,7 +32,12 @@
     .triviaIcon {
         position : relative;
         width : 135px;
-        height : 55px;
+        height : 45px;
+    }
+    @media screen and (max-height : 400px) {
+        .triviaIcon {
+            height : 55px;
+        }
     }
 </style>
     

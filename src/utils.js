@@ -4,6 +4,7 @@ export  const getParams =  function (name) {
 };
 import { writable } from 'svelte/store';
 export const changePageToChooseCategory = writable(0);
+export const notification = writable();
 export const getGameSessionId = function () {
     return getParams('roomId') + '+' + getParams('sessionId');
 };
@@ -88071,15 +88072,5 @@ for(const categoryName in categoryObject) {
   i += 1;
 }
 
-let globalObj = {};
-for(const categoryName in categoryObject) {
-  let obj = {};
-  let arr = categoryObject[categoryName];
-  arr.forEach((object)=>{
-    obj[ object["SUB TOPIC"] ] = true;
-  })
-  globalObj[categoryName] = obj;
-}
-console.log('globalObj ',globalObj);
 export const allCategoriesObject = allCategoriesObj;
   

@@ -1,6 +1,6 @@
 <script>
     import TriviaIcon from "./TriviaIcon.svelte";
-    import {dbHost,dbGameSessionRoundValue, dbGameSessionRound,dbAllCategories,listenFirebaseKey,setAllQuestions,dbUsers, dbUser,dbCategoryName} from './database';
+    import {dbHost,dbGameSessionRoundValue,dbAllCategories,setAllQuestions,dbUsers,dbGameSessionRounds,dbHostAction, listenFirebaseKey} from './database';
     import {getParams,getGameSessionId} from './utils';
     import CustomIcon from './icons/CustomCategoryAdd.svelte';
     import CustomButton from './CustomButton.svelte';
@@ -18,6 +18,8 @@
     let hostname;
     let users;
     let categoryName;
+    let dbCategoryName;
+    let dbGameSessionRound;
 
     dbHost.on('value',(snap)=>{
         if(!snap.exists()) {
@@ -28,14 +30,6 @@
             isHost = true;
         }
     })
-    listenFirebaseKey(dbCategoryName,(dbCategoryNameRef)=>{
-        dbCategoryNameRef.on('value',(snap)=>{
-            if(!snap.exists()) {
-                return;
-            }
-            categoryName = snap.val();
-        })
-    })
     
     dbUsers.on('value',(snap)=>{
         if(!snap.exists()) {
@@ -43,23 +37,43 @@
         }
         users = snap.val();
     })
+
     $: {
         if(hostId && users) {
             hostname = users[hostId]['userName'].split(' ')[0];
         }
     }
+
+    const categorySnapFun = (snap)=>{
+        if(!snap.exists()) {
+            categoryName = undefined;
+            return;
+        }
+        categoryName = snap.val();
+    }
+
     dbGameSessionRoundValue.on('value',(snap)=>{
         if(!snap.exists()) {
             return;
         }
+
         roundValue = snap.val();
+        dbGameSessionRound = dbGameSessionRounds.child(roundValue);
+
+        if(dbCategoryName) {
+            dbCategoryName.off('value',categorySnapFun);
+        }
+        dbCategoryName = dbGameSessionRound.child('categoryName');
+        dbCategoryName.on('value',categorySnapFun);
     })
+
     dbAllCategories.get().then((snap)=>{
         if(!snap.exists()) {
             return;
         }
         allCategories = snap.val();
     })
+
     $: {
         if(allCategories) {
             for(const id in allCategories) {
@@ -73,6 +87,7 @@
             allCategriesTitle = allCategriesTitle;
         }
     }
+
     function updateSelectedCategory(category) {
         if(!isHost) {
             return;
@@ -83,17 +98,34 @@
         }
         selectedCategoryId = category.categoryId;
     }
+
     let disableConformCategoryBtn = false;
     async function confirmCategory() {
         console.log('Conform category is called');
         disableConformCategoryBtn = true;
+        let previousCategoryName = categoryName;
+        if(!previousCategoryName) {
+            previousCategoryName = null;
+        }
+        let currentCategoryName = allCategories[selectedCategoryId]['categoryName'];
         await setAllQuestions({
             "categoryId" : selectedCategoryId,
             roundValue,
             gameSessionId
         });
+
+        listenFirebaseKey(dbHostAction,(dbHostActionRef)=>{
+            dbHostActionRef.set({
+                action : "Category",
+                previousCategory : previousCategoryName,
+                currentCategory : currentCategoryName,
+                time : Date.now()
+            })
+        });
+
         handleGoBack();
     }
+
     function handleGoBack() {
         changePageToChooseCategory.update((value) => value - 1);
     }
@@ -106,7 +138,7 @@
         {:else if !categoryName}
             {hostname} (Host) will select one of the category
         {:else if categoryName}
-            {hostname} (Host) have selected <span class = "selectedCategoryName">{categoryName}</span> category
+            {hostname} (Host) has selected <span class = "selectedCategoryName">{categoryName}</span> category
         {/if}
     </div>
     <div class = "categoriesList" in:fly ="{{ y: -20, duration: 1000 }}">
@@ -148,7 +180,7 @@
         font-size : 1rem;
         font-weight : 700;
         color : #fff;
-        margin-top : 1rem;
+        margin : 1rem 0rem;
     }
     .categoriesList {
         display : grid;

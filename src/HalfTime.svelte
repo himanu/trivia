@@ -1,10 +1,11 @@
 <script>
     import TriviaIcon from './TriviaIcon.svelte';
     import {getParams} from './utils';
-    import {dbUser,dbUsers,dbHost,dbAllQuestion,listenFirebaseKey,dbPage,dbCurrentQuestionNumber,dbGameSessionRoundValue,dbHalfTimer} from './database';
+    import {dbUser,dbUsers,dbHost,dbAllQuestion,listenFirebaseKey,dbPage,dbCurrentQuestionNumber,dbGameSessionRoundValue,dbHalfTimer,dbHostAction} from './database';
     import {fly} from 'svelte/transition';
     import CustomButton from './CustomButton.svelte';
     import YouAreOffline from './YouAreOffline.svelte';
+    import {info} from './Notifier';
 
     let userId = getParams('userId');
     let users;
@@ -16,6 +17,7 @@
     let currentQuestionNumber;
     let roundValue;
     let halfTime = 10;
+    let noOfOnlinePlayers;
 
     dbGameSessionRoundValue.on('value',(snap)=>{
         if(!snap.exists()) {
@@ -35,7 +37,6 @@
     listenFirebaseKey(dbHalfTimer,(dbHalfTimerRef)=>{
         dbHalfTimerRef.on('value',(snap)=>{
             if(!snap.exists()) {
-                halfTime = 0;
                 return;
             }
             halfTime = snap.val();
@@ -54,7 +55,28 @@
         }
         hostId = snap.val();
     })
-    
+    $: {
+        if(users) {
+            noOfOnlinePlayers = 0;
+            for(const id in users) {
+                if(users[id].isOnline === true) {
+                    noOfOnlinePlayers += 1;
+                }
+            }
+            if(noOfOnlinePlayers <= 1) {
+                dbGameSessionRoundValue.transaction((count)=>{
+                    return count + 1;
+                }).then(()=>{
+                    info(`Game can't be continued due to less number of online players`,`Disconnected`,5000);
+                })
+            }
+        }
+    }
+    $: {
+        if(hostId && users) {
+            hostName = users[hostId]['userName'].split(' ')[0];
+        }
+    }
     listenFirebaseKey(dbAllQuestion,(dbAllQuestionRef)=>{
         dbAllQuestionRef.on('value',(snap)=>{
             if(!snap.exists()) {
@@ -116,9 +138,6 @@
         }
     }
     $: {
-        if(hostId && users) {
-            hostName = processName(users[hostId]);
-        }
         if(hostId !== userId) {
             isHost = false;
         }
@@ -165,12 +184,25 @@
         if(currentQuestionNumber === 4) {
             listenFirebaseKey(dbHalfTimer,(dbHalfTimerRef)=>{
                 dbHalfTimerRef.set(0);
+            }).then(()=>{
+                listenFirebaseKey(dbHostAction,(dbHostActionRef)=>{
+                    dbHostActionRef.set({
+                        action : "Continue Game",
+                        time : Date.now()
+                    })
+                })
             })
         }
         else if(currentQuestionNumber === 9) {
             dbGameSessionRoundValue.set(roundValue + 1)
             .then(()=>{
                 console.log('Round Value is incremented');
+                listenFirebaseKey(dbHostAction,(dbHostActionRef)=>{
+                    dbHostActionRef.set({
+                        action : "Restart Game",
+                        time : Date.now()
+                    })
+                })
             })
             .catch((err)=>{
                 console.log('Something went wrong while incrementing round value ',err);
@@ -283,7 +315,7 @@
         {/if}
         {#if !isHost}
             <div class="message1" style = "margin-top : 0rem">
-                Host can continue the game!
+                {hostName} (Host) can continue the game!
             </div>
         {/if}
         {#if isHost}

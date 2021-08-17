@@ -72,6 +72,7 @@ export const dbCurrentQuestionNumber = ()=> dbGameSessionRound().child('currentQ
 export const dbAllQuestion = ()=> dbGameSessionRound().child('allQuestions');
 export const dbCategoryName = ()=> dbGameSessionRound().child('categoryName');
 export const dbQuestionTimer = ()=> dbGameSessionRound().child('questionTimer');
+export const dbHostAction = ()=> dbGameSessionRound().child('hostAction');
 
 export function listenFirebaseKey(key,callback) {
   roundTimeValuePromise.then(()=>{

@@ -1,5 +1,5 @@
 <script>
-    import {dbUsers,dbHost, dbGameSessionRound,listenFirebaseKey, dbCategoryName,dbPage} from './database';
+    import {dbUsers,dbHost,dbGameSessionRounds,listenFirebaseKey,dbPage,dbGameSessionRoundValue, dbHostAction} from './database';
     import {getParams} from './utils';
     import Tick from './OnlineTick.svelte';
     import DisconnectedSvg from './DisconnectedSvg.svelte';
@@ -17,6 +17,32 @@
     let noOfOnlinePlayers = 0;
     let disableStartGameBtn = false;
     let page;
+    let dbCategoryName;
+    let dbGameSessionRound;
+    let roundValue;
+    let hostAction;
+    
+    const categorySnapFun = (snap)=>{
+        if(!snap.exists()) {
+            categoryName = undefined;
+            return;
+        }
+        categoryName = snap.val();
+    }
+
+    dbGameSessionRoundValue.on('value',(snap)=>{
+        if(!snap.exists()) {
+            return;
+        }
+        roundValue = snap.val();
+        dbGameSessionRound = dbGameSessionRounds.child(roundValue);
+        dbCategoryName = dbGameSessionRound.child('categoryName');
+
+        if(dbCategoryName) {
+            dbCategoryName.off('value',categorySnapFun);
+        }
+        dbCategoryName.on('value',categorySnapFun);
+    })
 
     dbUsers.on('value',(snap)=>{
         if(!snap.exists()) {
@@ -25,15 +51,6 @@
         users = snap.val();
     })
     
-    listenFirebaseKey(dbCategoryName,(dbCategoryNameRef)=>{
-        dbCategoryNameRef.on('value',(snap)=>{
-            if(!snap.val()) {
-                categoryName = undefined;
-                return;
-            }
-            categoryName = snap.val();
-        })
-    })
     $: {
         if(users) {
             console.log('users ',users);
@@ -47,6 +64,7 @@
             }
         }
     }
+
     let hostName;
     dbHost.on('value',(snap)=>{
         if(!snap.exists()) {
@@ -60,11 +78,16 @@
             isHost = false;
         }
     })
+
     $: {
         if(hostId && users) {
             hostName = users[hostId]['userName'].split(' ')[0];
         }
     }
+
+    listenFirebaseKey(dbHostAction,(dbHostActionRef)=>{
+
+    })
     function processName(currUser) {
         let name = currUser.userName;
         let fname = name?.split(" ")[0];
@@ -86,6 +109,7 @@
         }
         return fname;
     }
+
     function validUserProfilePicture(str) {
         try {
             new URL(str);
@@ -95,11 +119,13 @@
             return false;
         }
     }
+
     let changePage;
     const unsubscribe = changePageToChooseCategory.subscribe((value)=>{
         console.log('value ',value);
         changePage = value;
     })
+
     listenFirebaseKey((dbPage),(dbPageRef)=>{
         dbPageRef.on('value',(snap)=>{
             if(!snap.exists()) {
@@ -108,28 +134,32 @@
             page = snap.val();
         })
     })
+
     function handleChooseCategory() {
-        // listenFirebaseKey(dbGameSessionRound,(dbGameSessionRoundRef)=>{
-        //     dbGameSessionRoundRef.update({
-        //         page : "Choose Category"
-        //     })
-        // });
         changePageToChooseCategory.set(1);
     }
+
     function handleStartGame() {
         disableStartGameBtn = true;
-        listenFirebaseKey(dbGameSessionRound,(dbGameSessionRoundRef)=>{
-            dbGameSessionRoundRef.update({
-                page : "Game",
-                currentQuestionNumber : 0
+        dbGameSessionRound.update({
+            page : "Game",
+            currentQuestionNumber : 0
+        }).then(()=>{
+            listenFirebaseKey(dbHostAction,(dbHostActionRef)=>{
+                dbHostActionRef.set({
+                    action : "Start Game",
+                    time : Date.now()
+                })
             })
         })
     }
+
     function handleViewCategory() {
         changePageToChooseCategory.update((value)=>{
             return value + 1;
         })
     }
+
 </script>
     {#if changePage === 1}
         <ChooseCategory/>
@@ -152,7 +182,7 @@
                     {#if !categoryName && hostName}
                         Ask {hostName}(host) to select a category
                     {:else if noOfOnlinePlayers >= 2}
-                        Waiting for host to start the game
+                        Waiting for {hostName}(Host) to start the game
                     {:else}
                         Waiting for others to join
                         <div style = "font-size : 0.75rem; font-weight : 500; letter-spacing : 0.05rem">
@@ -295,12 +325,15 @@
         font-size : 0.75rem;
         font-weight : 700;
         color : #fff;
+        width : 5rem;
+        text-align : center;
     }
     .normalPlayerContainer {
         display : flex;
         justify-content: center;
         flex-wrap : wrap;
         max-height : 200px;
+        min-width : 50vw;
         max-width : 70vw;
         margin : 0 auto;
         overflow-y : auto;
