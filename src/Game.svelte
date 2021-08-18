@@ -27,6 +27,7 @@
             currentQuestionNumber = snap.val();
             selectedOptionId = undefined;
             time = 0;
+            questionTimer = 30;
             clearTimeout(interval);
             interval = setTimeout(()=>{
                 time = 1;
