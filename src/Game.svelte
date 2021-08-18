@@ -437,6 +437,7 @@
         background: #C81919;
         color : #fff;
     }
+    
     @keyframes animateOption {
         0% {
             transform: scale(1);
