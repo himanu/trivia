@@ -100,7 +100,7 @@ dbGameSessionRoundValue.on("value", (snap) => {
   roundValue = snap.val();
 })
 // console.log(allCategoriesObject[0]['categoryQuestions'].length);
-dbAllCategories.set(allCategoriesObject); 
+// dbAllCategories.set(allCategoriesObject); 
 var connectedRef = firebase.database().ref('.info/connected');
 connectedRef.on('value', (snap) => {
   if (snap.val() === true) {
