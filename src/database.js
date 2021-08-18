@@ -1,7 +1,7 @@
 import firebase from "firebase/app";
 import "firebase/database";
 import 'firebase/functions';
-import { getGameSessionId, getParams,allCategoriesObject} from "./utils";
+import { getGameSessionId, getParams} from "./utils";
 
 var firebaseConfig = {
   apiKey: "AIzaSyBwkwm7nO4jYmXSQ93344sh_xDkg9xQ-Ps",
