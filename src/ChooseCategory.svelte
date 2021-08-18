@@ -141,8 +141,9 @@
             {hostname} (Host) has selected <span class = "selectedCategoryName">{categoryName}</span> category
         {/if}
     </div>
-    <div class = "categoriesList" in:fly ="{{ y: -20, duration: 1000 }}">
-        {#if allCategriesTitle.length}
+    
+    {#if allCategriesTitle.length}
+        <div class = "categoriesList" in:fly ="{{ y: -20, duration: 1000 }}">
             {#each allCategriesTitle as category}
                 <div class="category" class:selectedCategory = {selectedCategoryId === category.categoryId} class:hostCategory = {isHost} on:click = {()=>{updateSelectedCategory(category)}}>
                     <CustomIcon selectedCategory = {selectedCategoryId === category.categoryId}/>
@@ -151,12 +152,12 @@
                     </div>
                 </div>
             {/each}
-        {:else}
-            <div style = "font-family:  Manrope;font-size : 1.5rem; font-weight : 700; color : #fff">
-                Loading
-            </div>
-        {/if}
-    </div>
+        </div>
+    {:else}
+        <div style = "font-family:  Manrope;font-size : 1.5rem; font-weight : 700; color : #fff">
+            Loading
+        </div>
+    {/if}
     {#if isHost}
         <CustomButton btnText = "Confirm Category" tooltipMsg = {selectedCategoryId === undefined?"Please select one of the category":""} disableBtn = {(selectedCategoryId === undefined) || disableConformCategoryBtn} on:click = {confirmCategory}/>
     {:else}
