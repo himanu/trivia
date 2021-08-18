@@ -14,36 +14,36 @@ var firebaseConfig = {
 };
   // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
-// var firebaseEmulators = {
-//       "database": {
-//         "host": "localhost",
-//         "port": 9000
-//       },
-//       "functions": {
-//         "host": "localhost",
-//         "port": 5001
-//       }
-//     };
-//   if (firebaseEmulators) {
-//       console.log("Automatically connecting Firebase SDKs to running emulators:");
-//       Object.keys(firebaseEmulators).forEach(function(key) {
-//       console.log('\t' + key + ': http://' +  firebaseEmulators[key].host + ':' + firebaseEmulators[key].port );
-//       });
-//       if (firebaseEmulators.database && typeof firebase.database === 'function') {
-//       firebase.database().useEmulator(firebaseEmulators.database.host, firebaseEmulators.database.port);
-//       }
-//       if (firebaseEmulators.firestore && typeof firebase.firestore === 'function') {
-//       firebase.firestore().useEmulator(firebaseEmulators.firestore.host, firebaseEmulators.firestore.port);
-//       }
-//       if (firebaseEmulators.functions && typeof firebase.functions === 'function') {
-//       firebase.functions().useEmulator(firebaseEmulators.functions.host, firebaseEmulators.functions.port);
-//       }
-//       if (firebaseEmulators.auth && typeof firebase.auth === 'function') {
-//       firebase.auth().useEmulator('http://' + firebaseEmulators.auth.host + ':' + firebaseEmulators.auth.port);
-//       }
-//   } else {
-//       console.log("To automatically connect the Firebase SDKs to running emulators, replace '/__/firebase/init.js' with '/__/firebase/init.js?useEmulator=true' in your index.html");
-//   }
+var firebaseEmulators = {
+      "database": {
+        "host": "localhost",
+        "port": 9000
+      },
+      "functions": {
+        "host": "localhost",
+        "port": 5001
+      }
+    };
+  if (firebaseEmulators) {
+      console.log("Automatically connecting Firebase SDKs to running emulators:");
+      Object.keys(firebaseEmulators).forEach(function(key) {
+      console.log('\t' + key + ': http://' +  firebaseEmulators[key].host + ':' + firebaseEmulators[key].port );
+      });
+      if (firebaseEmulators.database && typeof firebase.database === 'function') {
+      firebase.database().useEmulator(firebaseEmulators.database.host, firebaseEmulators.database.port);
+      }
+      if (firebaseEmulators.firestore && typeof firebase.firestore === 'function') {
+      firebase.firestore().useEmulator(firebaseEmulators.firestore.host, firebaseEmulators.firestore.port);
+      }
+      if (firebaseEmulators.functions && typeof firebase.functions === 'function') {
+      firebase.functions().useEmulator(firebaseEmulators.functions.host, firebaseEmulators.functions.port);
+      }
+      if (firebaseEmulators.auth && typeof firebase.auth === 'function') {
+      firebase.auth().useEmulator('http://' + firebaseEmulators.auth.host + ':' + firebaseEmulators.auth.port);
+      }
+  } else {
+      console.log("To automatically connect the Firebase SDKs to running emulators, replace '/__/firebase/init.js' with '/__/firebase/init.js?useEmulator=true' in your index.html");
+  }
 
 let roundValue = 1;
 function getRoundValue() {
@@ -100,7 +100,7 @@ dbGameSessionRoundValue.on("value", (snap) => {
   roundValue = snap.val();
 })
 // console.log(allCategoriesObject[0]['categoryQuestions'].length);
-// dbAllCategories.set(allCategoriesObject); 
+dbAllCategories.set(allCategoriesObject); 
 var connectedRef = firebase.database().ref('.info/connected');
 connectedRef.on('value', (snap) => {
   if (snap.val() === true) {

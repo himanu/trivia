@@ -1,6 +1,6 @@
 <script>
     import TriviaIcon from './TriviaIcon.svelte';
-    import {dbCurrentQuestionNumber,listenFirebaseKey,dbAllQuestion, dbQuestionTimer,dbUsers} from './database'
+    import {dbCurrentQuestionNumber,listenFirebaseKey,dbAllQuestion, dbQuestionTimer,dbUsers,dbGameSessionRoundValue} from './database'
     import { getParams } from './utils';
     import {fly} from 'svelte/transition';
     import RoundIndicator from './RoundIndicator.svelte';
@@ -15,8 +15,9 @@
     let time = 0;
     let remTime;
     let users;
-    
+    let pageHasRefreshed = true;
     let interval;
+    let requestAnimationFrameId;
     let timeToShow;
     
     listenFirebaseKey((dbCurrentQuestionNumber),(dbCurrentQuestionNumberRef)=>{
@@ -29,9 +30,13 @@
             time = 0;
             questionTimer = 30;
             borderColor = "#27AE60";
-            clearTimeout(interval);
-            interval = setTimeout(()=>{
+            pageHasRefreshed = true;
+            clearInterval(interval);
+            interval = setInterval(()=>{
                 time = 1;
+                if(time === 1) {
+                    clearInterval(interval);
+                }
             },1000);
         })
     })
@@ -77,8 +82,8 @@
     // -65 for full screen
     let strokeDashOffset = -63;
     let stroke1 = maxValueOfStroke  - stroke;
-    let elapsed;
     let initialTime = 31;
+    let timeVal,timeVal1;
 
     listenFirebaseKey(dbQuestionTimer,(dbQuestionTimerRef)=>{
         dbQuestionTimerRef.on('value',(snap)=>{
@@ -107,25 +112,46 @@
             else if(questionTimer > 0) {
                 borderColor = "#C81919";
             }
-            clearInterval( setIntervalInterval );
-            if(initialTime < 31) {
-                setStroke();
-            }
-        })
-    })
-    function setStroke() {
-        setIntervalInterval = setInterval(()=>{
-            initialTime = initialTime - 10/1000;
-            if(initialTime < 0) {
-                clearInterval(setIntervalInterval);
+            // clearInterval( setIntervalInterval );
+            timeVal1 = initialTime;
+            if(initialTime === 0) {
+                cancelAnimationFrame(requestAnimationFrameId);
                 stroke = 0;
                 stroke1 = maxValueOfStroke - stroke;
             }
-            else {
-                stroke = (30 - initialTime)*(maxValueOfStroke)/30;
-                stroke1 = maxValueOfStroke - stroke;
+            else if(initialTime < 31 && pageHasRefreshed) {
+                pageHasRefreshed = false;
+                prev = null;
+                timeVal = initialTime;
+                cancelAnimationFrame(requestAnimationFrameId);
+                requestAnimationFrameId = requestAnimationFrame(setStroke);
             }
-        },10);
+        })
+    })
+
+    let prev,curr,elapsed;
+    function setStroke(timeStamp) {
+        if(!prev) {
+            prev = timeStamp;
+            timeVal = timeVal1;
+        }
+        else {
+            curr = timeStamp;
+            elapsed = curr - prev;
+            timeVal = timeVal - elapsed/1000;
+            prev = curr;
+        }
+        if(timeVal <= 0) {
+            cancelAnimationFrame(requestAnimationFrameId)
+            prev = null;
+            stroke = 0;
+            stroke1 = maxValueOfStroke - stroke;
+        }
+        else {
+            stroke = (30 - timeVal)*(maxValueOfStroke)/30;
+            stroke1 = maxValueOfStroke - stroke;
+            requestAnimationFrameId = requestAnimationFrame(setStroke);
+        }
     }
     
     listenFirebaseKey(dbAllQuestion,(dbAllQuestionsRef)=>{
