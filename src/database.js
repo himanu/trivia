@@ -1,7 +1,7 @@
 import firebase from "firebase/app";
 import "firebase/database";
 import 'firebase/functions';
-import { getGameSessionId, getParams} from "./utils";
+import { getGameSessionId, getParams,allCategoriesObject} from "./utils";
 
 var firebaseConfig = {
   apiKey: "AIzaSyBwkwm7nO4jYmXSQ93344sh_xDkg9xQ-Ps",
@@ -115,12 +115,12 @@ connectedRef.on('value', (snap) => {
     });
   }
 });
-dbScoreOfUser.once('value',(snap)=>{
-  if(!snap.exists()) {
-      dbScoreOfUser.set(0);
-      return;
-  }
-})
+// dbScoreOfUser.once('value',(snap)=>{
+//   if(!snap.exists()) {
+//       dbScoreOfUser.set(0);
+//       return;
+//   }
+// })
 dbUser.update({
   id: getParams('userId'),
   userName: getParams('userName'),

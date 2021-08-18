@@ -85,6 +85,7 @@
                 );
             }
             allCategriesTitle = allCategriesTitle;
+            // console.log('allCategriesTitle ',allCategriesTitle);
         }
     }
 
@@ -155,7 +156,7 @@
         </div>
     {:else}
         <div style = "font-family:  Manrope;font-size : 1.5rem; font-weight : 700; color : #fff; margin: auto">
-            Loading
+            Loading...
         </div>
     {/if}
     {#if isHost}

@@ -273,20 +273,22 @@ exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivi
 
         questionTimer = questionTimer - 1;
         if(questionTimer <= 0) {
-          questionTimerRef.set(0);
+          if(questionTimer === 0) 
+            questionTimerRef.set(0);
           clearInterval(interval);
           
           let lastTimer = setTimeout(()=>{
-            Promise.all( [questionTimerRef.remove(),currentQuestionNumberRef.transaction( async(count) => { 
+            Promise.all( [questionTimerRef.remove(),currentQuestionNumberRef.transaction( (count) => { 
               if(count === 4) {
-                try {
-                  await Promise.all([pageRef.set('HalfTime'),halfTimerRef.set(10)])
+                Promise.all([pageRef.set('HalfTime'),halfTimerRef.set(10)])
+                .then(()=>{
+                  console.log('Successful');
                   return count;
-                }
-                catch(err){
+                })
+                .catch((err)=>{
                   console.log('Some error occur ',err);
                   return count;
-                }
+                })
               }
               else if(count === 9) {
                 // usersId , usersScore , gameSessionId
