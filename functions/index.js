@@ -277,8 +277,9 @@ exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivi
             questionTimerRef.set(0);
           clearInterval(interval);
           
-          let lastTimer = setTimeout(()=>{
-            Promise.all( [questionTimerRef.remove(),currentQuestionNumberRef.transaction( (count) => { 
+          let lastTimer = setTimeout(async()=>{
+            await questionTimerRef.remove();
+            currentQuestionNumberRef.transaction( (count) => { 
               if(count === 4) {
                 Promise.all([pageRef.set('HalfTime'),halfTimerRef.set(10)])
                 .then(()=>{
@@ -329,9 +330,9 @@ exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivi
               else if(count < 9){
                 return count + 1;
               }
-            })])
+            })
             .then(()=> {
-              console.log('Question timer ref is removed and count of question number is set');
+              console.log('count of question number is set');
               clearTimeout(lastTimer);
               resolve();
             })
