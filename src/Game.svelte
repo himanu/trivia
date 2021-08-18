@@ -27,10 +27,10 @@
             currentQuestionNumber = snap.val();
             selectedOptionId = undefined;
             time = 0;
-            // clearTimeout(interval);
-            // interval = setTimeout(()=>{
-            //     time = 1;
-            // },1000);
+            clearTimeout(interval);
+            interval = setTimeout(()=>{
+                time = 1;
+            },1000);
         })
     })
     dbUsers.on('value',(snap)=>{
@@ -57,16 +57,7 @@
             }
         }
     }
-    $: {
-        if(time === 0) {
-            interval = setTimeout(()=>{
-                time = 1;
-            },1000);
-        }
-        else {
-            clearTimeout(interval);
-        }
-    }
+    
     let opacityOfContainer;
     $: {
         if(time === 0) {
@@ -91,8 +82,7 @@
         dbQuestionTimerRef.on('value',(snap)=>{
 
             if(!snap.exists()) {
-                questionTimer = undefined;
-                return;
+                questionTimer = 30;
             }
             else {
                 initialTime = snap.val();

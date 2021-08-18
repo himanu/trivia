@@ -146,7 +146,7 @@
     {#if allCategriesTitle.length}
         <div class = "categoriesList" in:fly ="{{ y: -20, duration: 1000 }}">
             {#each allCategriesTitle as category}
-                <div class="category" class:selectedCategory = {selectedCategoryId === category.categoryId} class:hostCategory = {isHost} on:click = {()=>{updateSelectedCategory(category)}}>
+                <div class="category" class:selectedCategory = {selectedCategoryId === category.categoryId} class:hostCategory = {isHost && !disableConformCategoryBtn} on:click = {()=>{updateSelectedCategory(category)}}>
                     <CustomIcon selectedCategory = {selectedCategoryId === category.categoryId}/>
                     <div class = "categoryName">
                         {category.categoryName}
