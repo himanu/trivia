@@ -205,7 +205,7 @@
         }
     }
     $: {
-        if(questionTimer === 0 && allQuestions && currentQuestionNumber) {
+        if(questionTimer === 0 && allQuestions && currentQuestionNumber != undefined && currentQuestionNumber !== null) {
             if(answerOptionId === selectedOptionId) {
                 borderColor = "#27AE60";
             }

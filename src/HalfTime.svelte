@@ -180,7 +180,12 @@
             return false;
         }
     }
+    let disableContinueBtn = false;
     async function handleContinueButton() {
+        if(disableContinueBtn) {
+            return;
+        }
+        disableContinueBtn = true;
         if(currentQuestionNumber === 4) {
             listenFirebaseKey(dbHalfTimer,(dbHalfTimerRef)=>{
                 dbHalfTimerRef.set(0);
@@ -318,7 +323,7 @@
             </div>
         {/if}
         {#if isHost}
-            <CustomButton btnText = {currentQuestionNumber === 4?"Continue":"New Game"} on:click = {handleContinueButton}/>
+            <CustomButton btnText = {currentQuestionNumber === 4?"Continue":"New Game"} disableBtn = {disableContinueBtn} on:click = {handleContinueButton}/>
         {/if}
     </div>
 {:else}

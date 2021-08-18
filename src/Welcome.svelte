@@ -134,12 +134,19 @@
             page = snap.val();
         })
     })
-
+    let disbleChooseCategory = false;
     function handleChooseCategory() {
+        if(disbleChooseCategory) {
+            return;
+        }
+        disbleChooseCategory = true;
         changePageToChooseCategory.set(1);
     }
 
     function handleStartGame() {
+        if(disableStartGameBtn) {
+            return;
+        }
         disableStartGameBtn = true;
         dbGameSessionRound.update({
             page : "Game",
@@ -251,7 +258,7 @@
             {/if}
             {#if isHost}
                 {#if !categoryName}
-                    <CustomButton btnText = {"Choose Category"} on:click = {handleChooseCategory} disableBtn = {false}/>
+                    <CustomButton btnText = {"Choose Category"} on:click = {handleChooseCategory} disableBtn = {disbleChooseCategory}/>
                 {:else}
                     <div class="buttonContainer">
                         <!-- <CustomButton btnText = {"Change Category"} on:click = {handleChooseCategory} /> -->
