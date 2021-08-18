@@ -261,7 +261,9 @@ exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivi
     let currentQuestionNumberRef = snapshot.ref.parent.child('currentQuestionNumber');
     let pageRef = snapshot.ref.parent.child('page');
     let halfTimerRef = snapshot.ref.parent.child('halfTimer');
-
+    let gameSessionId = context.params.gameSessionId;
+    let data = {};
+    
     return new Promise(async (resolve,reject)=>{
       let interval = setInterval(async()=>{
         //First get the question timer status
@@ -284,12 +286,40 @@ exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivi
                 })
               }
               else if(count === 9) {
-                pageRef.set('HalfTime').then(()=>{
-                  console.log("Page is set to halftime");
+                // usersId , usersScore , gameSessionId
+                let allQuestionsRef = snapshot.ref.parent.child('allQuestions');
+                let allQuestions;
+                Promise.all([allQuestionsRef.get(), pageRef.set('HalfTime')])
+                .then((snap)=>{
+                  allQuestions = snap[0].val();
+                  if(!allQuestions) {
+                    console.log('All question not exists');
+                    return;
+                  }
+                  let scoreOfUsers = {};
+                  for(let i = 0; i<=9 ; i++) {
+                    let currQuestionAnswers = allQuestions[i]['usersAnswers'];
+                    let correctOption = allQuestions[i]['correctOption'];
+                    for(const userId in currQuestionAnswers) {
+                        let currUserAnswer = currQuestionAnswers[userId];
+                        if(currUserAnswer === correctOption) {
+                            if(scoreOfUsers[userId] === undefined) {
+                                scoreOfUsers[userId] =  1
+                            }
+                            else {
+                                scoreOfUsers[userId] += 1;
+                            }
+                        }
+                    }
+                  }
+                  updateLeaderBoard({gameSessionId,scoreOfUsers})
+                  .then(()=>{
+                    console.log('Update leader board is successful');
+                  })
+                  .catch((err)=>{
+                    console.log('Some error occur while updating leader board ',err);
+                  })
                 })
-                .catch((err)=>{
-                  console.log('Error while setting page to halftime ',err);
-                });
               }
               else if(count < 9){
                 return count + 1;
@@ -395,7 +425,42 @@ exports.startHalfTimer = functions.runWith(runtimeOpts).database.ref('/trivia/{g
       },1000);
     })
   })
+
 function shuffle(array) {
   array.sort(() => Math.random() - 0.5);
 }
+
+const updateLeaderBoard = ({gameSessionId,scoreOfUsers}) => {
+  const roomIdSessionId = gameSessionId;
+  console.log('gameSessionId ',roomIdSessionId);
+  const sessionId = roomIdSessionId.split("+")[1];
+  let scoresArray = [];
+  for(const userid in scoreOfUsers) {
+    scoresArray.push({
+      userid,
+      score : scoreOfUsers[userid]
+    })
+  }
+  return axios.post(
+    `${functions.config().app.url}/v1/api/dapp/extension/${
+      functions.config().app.id
+    }/leaderboard/save/`,
+    {
+      session_id: sessionId,
+      scores: scoresArray,
+    },
+    {
+      headers: {
+        "X-APP-ACCESS-SECRET": `Token ${functions.config().app.secret}`,
+      },
+    }
+  )
+    .then(function (response) {
+      console.log('Updateleaderboard success response is ',response);
+    })
+    .catch((error) => {
+      console.log('Updateleaderboard error is ',error);
+    });
+};
+
 
