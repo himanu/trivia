@@ -141,6 +141,9 @@
 				dbHost.set(userId);
 			}
 		})
+		.catch(()=>{
+			dbHost.set(userId);
+		})
 	}
 
 	let hostName;
