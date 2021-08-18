@@ -91,6 +91,7 @@
         dbQuestionTimerRef.on('value',(snap)=>{
 
             if(!snap.exists()) {
+                questionTimer = undefined;
                 return;
             }
             else {
@@ -105,9 +106,6 @@
     
             // questionTimer = remTime/1000;
             questionTimer = remTime;
-            if(Number.isInteger(questionTimer)) {
-                timeToShow = questionTimer;
-            }
             if(questionTimer > 15) {
                 borderColor = "#27AE60";
             }
@@ -234,11 +232,11 @@
     <div class = "answerScreenContainer" in:fly ="{{ y: -20, duration: 1000 }}" style = "opacity : {opacityOfContainer}">
         {#if questionTimer != undefined}
             <div class="questionTimer" style = "background : {borderColor}">
-                {#if timeToShow > 9}
-                    0:{timeToShow}
-                {:else if timeToShow > 0}
-                    0:0{timeToShow}
-                {:else if timeToShow === 0}
+                {#if questionTimer > 9}
+                    0:{questionTimer}
+                {:else if questionTimer > 0}
+                    0:0{questionTimer}
+                {:else if questionTimer === 0}
                     {#if answerOptionId === selectedOptionId}
                         Correct!
                     {:else if selectedOptionId != undefined}
@@ -250,7 +248,7 @@
             </div>
         {:else }
             <div class="questionTimer" style = "background : {borderColor}">
-                0:00
+                0:30
             </div>
         {/if}
 
