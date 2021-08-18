@@ -1,5 +1,6 @@
 const functions = require("firebase-functions");
 const admin = require('firebase-admin');
+const axios = require('axios');
 admin.initializeApp();
 const runtimeOpts = {
   timeoutSeconds: 200
@@ -438,7 +439,7 @@ const updateLeaderBoard = ({gameSessionId,scoreOfUsers}) => {
   for(const userid in scoreOfUsers) {
     scoresArray.push({
       userid,
-      score : scoreOfUsers[userid]
+      score : scoreOfUsers[userid]*10
     })
   }
   return axios.post(

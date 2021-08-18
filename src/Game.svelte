@@ -434,7 +434,7 @@
         animation  : animateOption 2s 1
     }
     .wrongOption {
-        background: #EB5757;
+        background: #C81919;
         color : #fff;
     }
     @keyframes animateOption {
