@@ -28,6 +28,7 @@
             selectedOptionId = undefined;
             time = 0;
             questionTimer = 30;
+            borderColor = "#27AE60";
             clearTimeout(interval);
             interval = setTimeout(()=>{
                 time = 1;
