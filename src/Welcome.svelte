@@ -53,7 +53,6 @@
     
     $: {
         if(users) {
-            console.log('users ',users);
             usersArray = [];
             noOfOnlinePlayers = 0;
             for(const id in users) {
@@ -122,7 +121,6 @@
 
     let changePage;
     const unsubscribe = changePageToChooseCategory.subscribe((value)=>{
-        console.log('value ',value);
         changePage = value;
     })
 

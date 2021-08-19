@@ -88044,12 +88044,13 @@ function areTwoEqual(s1,s2) {
   // console.log('s1 ',s1, ' s2 ',s2);
   return s2.toString().replace(/[^a-zA-Z]/g, "").toLowerCase() === s1.toString().replace(/[^a-zA-Z]/g, "").toLowerCase();
 }
-
+let allCategoriesName = [];
 for(const categoryName in categoryObject) {
   let categoryQuestionArray = categoryObject[categoryName];
   let categoryQuestions = [];
   let currentCategoryObject ={};
-  currentCategoryObject['categoryName'] = categoryName
+  currentCategoryObject['categoryName'] = categoryName;
+  allCategoriesName.push(categoryName);
   categoryQuestionArray.forEach((questionObject)=>{
     let obj = {};
     let correctOption,correctText = questionObject["CORRECT OPTION"];
@@ -88073,4 +88074,5 @@ for(const categoryName in categoryObject) {
 }
 
 export const allCategoriesObject = allCategoriesObj;
+export const categoriesNameArray = allCategoriesName;
   

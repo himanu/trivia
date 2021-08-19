@@ -1,6 +1,6 @@
 <script>
     import TriviaIcon from "./TriviaIcon.svelte";
-    import {dbHost,dbGameSessionRoundValue,dbAllCategories,setAllQuestions,dbUsers,dbGameSessionRounds,dbHostAction, listenFirebaseKey} from './database';
+    import {dbHost,dbGameSessionRoundValue,dbAllCategoriesName,setAllQuestions,dbUsers,dbGameSessionRounds,dbHostAction, listenFirebaseKey} from './database';
     import {getParams,getGameSessionId} from './utils';
     import CustomIcon from './icons/CustomCategoryAdd.svelte';
     import CustomButton from './CustomButton.svelte';
@@ -11,7 +11,7 @@
     let isHost;
     let userId = getParams('userId');
     let gameSessionId = getGameSessionId();
-    let allCategories;
+    let allCategoriesName;
     let allCategriesTitle = [];
     let selectedCategoryId;
     let roundValue;
@@ -67,25 +67,24 @@
         dbCategoryName.on('value',categorySnapFun);
     })
 
-    dbAllCategories.get().then((snap)=>{
+    dbAllCategoriesName.get().then((snap)=>{
         if(!snap.exists()) {
             return;
         }
-        allCategories = snap.val();
+        allCategoriesName = snap.val();
     })
 
     $: {
-        if(allCategories) {
-            for(const id in allCategories) {
+        if(allCategoriesName) {
+            for(const id in allCategoriesName) {
                 allCategriesTitle.push(
                     {
-                        "categoryName" : allCategories[id]['categoryName'],
+                        "categoryName" : allCategoriesName[id],
                         "categoryId" : id
                     }
                 );
             }
             allCategriesTitle = allCategriesTitle;
-            // console.log('allCategriesTitle ',allCategriesTitle);
         }
     }
 
@@ -102,7 +101,6 @@
 
     let disableConformCategoryBtn = false;
     async function confirmCategory() {
-        console.log('Conform category is called');
         disableConformCategoryBtn = true;
         let previousCategoryName = categoryName;
         if(!previousCategoryName) {

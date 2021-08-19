@@ -127,14 +127,10 @@
         dbGameSessionRound = dbGameSessionRounds.child(roundValue);
         dbGameSessionRound.on('value',snapFun);
     })
-	$: console.log('roundValue ',roundValue);
-	$: console.log('page ',page);
-
 	
 	let userId = getParams('userId');
 	let hostId;
 	if((getParams('isHost') === 'true')) {
-		console.log('Hey');
 		dbHost.get().then((snap)=>{
 			hostId = snap.val();
 			if(!hostId) {
