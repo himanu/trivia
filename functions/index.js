@@ -361,23 +361,22 @@ exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivi
 
 exports.setAllQuestions = functions.https.onCall(async(data)=>{
   const db = admin.database();
-  console.log(data);
   const categoryId = data.categoryId;
-  let allCategoriesRef = db.ref(`/trivia/allCategories`);
+  let selectedCategoryRef = db.ref(`/trivia/allCategories/${categoryId}`);
    
   let allQuestionsRef = db.ref(`/trivia/${data.gameSessionId}/rounds/${data.roundValue}/allQuestions`);
   let categoryNameRef = allQuestionsRef.parent.child('categoryName');
   let currentQuestionRef = allQuestionsRef.parent.child('currentQuestionNumber');
   let pageRef = allQuestionsRef.parent.child('page');
-  let allCategories,allCategoriesSnap;
+  let selectedCategory,selectedCategorySnap;
   try {
-    allCategoriesSnap = await allCategoriesRef.get();
-    if(!allCategoriesSnap.exists()) {
-      return console.log('allcategories does not exist in database');
+    selectedCategorySnap = await selectedCategoryRef.get();
+    if(!selectedCategorySnap.exists()) {
+      return console.log('selected category does not exist in database');
     }
-    allCategories = allCategoriesSnap.val();
-    let categoryQuestions = allCategories[categoryId]['categoryQuestions'];
-    let categoryName = allCategories[categoryId]['categoryName'];
+    selectedCategory = selectedCategorySnap.val();
+    let categoryQuestions = selectedCategory['categoryQuestions'];
+    let categoryName = selectedCategory['categoryName'];
     shuffle(categoryQuestions);
     
     return Promise.all([allQuestionsRef.set(categoryQuestions.slice(0,10)),categoryNameRef.set(categoryName),pageRef.set('Welcome')]).then(()=>{

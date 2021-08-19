@@ -106,7 +106,7 @@
         if(!previousCategoryName) {
             previousCategoryName = null;
         }
-        let currentCategoryName = allCategories[selectedCategoryId]['categoryName'];
+        let currentCategoryName = allCategoriesName[selectedCategoryId];
         await setAllQuestions({
             "categoryId" : selectedCategoryId,
             roundValue,
