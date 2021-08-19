@@ -140,6 +140,9 @@
         disbleChooseCategory = true;
         changePageToChooseCategory.set(1);
     }
+    function handleChangeCategory() {
+        changePageToChooseCategory.set(1);
+    }
 
     function handleStartGame() {
         if(disableStartGameBtn) {
@@ -250,7 +253,7 @@
                 <div class="chooseCategoryContainer">
                     Choosen category - <span class = "categoryName" title = {isHost?"":"Host can change the category"}> {categoryName} </span> 
                     {#if isHost}
-                        <span class = "changeCategory" on:click = {handleChooseCategory}> (change) </span>
+                        <span class = "changeCategory" on:click = {handleChangeCategory}> (change) </span>
                     {/if}
                 </div>
             {/if}
