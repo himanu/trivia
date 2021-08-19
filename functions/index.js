@@ -197,6 +197,7 @@ exports.setTimerOnChangeOfNumberOfOnlineUsers = functions.database.ref(`/trivia/
         return ;
       }
       let roundValue = roundValueSnap.val();
+      console.log('roundValue ',roundValue);
       let currentQuestionNumberRef = change.after.ref.parent.child('rounds').child(roundValue).child('currentQuestionNumber');
       let allQuestionsRef = change.after.ref.parent.child('rounds').child(roundValue).child('allQuestions');
       let allQuestions,currentQuestionNumber;
@@ -209,9 +210,11 @@ exports.setTimerOnChangeOfNumberOfOnlineUsers = functions.database.ref(`/trivia/
           resolve();
           return;
         }
+        console.log('currentQuestionNumber ',currentQuestionNumber);
         let allOnlineUsersHaveGivenAnswer = true;
         for(const userId in users) {
-          if(users[userId].isOnline === true && !allQuestions[currentQuestionNumber]['usersAnswers'][userId]) {
+          let currUserAnswer = allQuestions[currentQuestionNumber]['usersAnswers'][userId];
+          if(users[userId].isOnline === true && (currUserAnswer === undefined || currUserAnswer === null)) {
             allOnlineUsersHaveGivenAnswer = false;
             break;
           }
