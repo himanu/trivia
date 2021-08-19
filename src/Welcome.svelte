@@ -333,7 +333,6 @@
         font-size : 0.75rem;
         font-weight : 700;
         color : #fff;
-        width : 5rem;
         text-align : center;
     }
     .normalPlayerContainer {
