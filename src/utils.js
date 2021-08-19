@@ -88042,7 +88042,10 @@ export const categoryObject = {
 
 function areTwoEqual(s1,s2) {
   // console.log('s1 ',s1, ' s2 ',s2);
-  return s2.toString().replace(/[^a-zA-Z]/g, "").toLowerCase() === s1.toString().replace(/[^a-zA-Z]/g, "").toLowerCase();
+  if(s1 === s2) {
+    return true;
+  }
+  return s2.toString().replace(/[^a-zA-Z0-9]/g, "").toLowerCase() === s1.toString().replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
 }
 let allCategoriesName = [];
 for(const categoryName in categoryObject) {

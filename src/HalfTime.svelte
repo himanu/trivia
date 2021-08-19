@@ -188,13 +188,15 @@
         disableContinueBtn = true;
         if(currentQuestionNumber === 4) {
             listenFirebaseKey(dbHalfTimer,(dbHalfTimerRef)=>{
-                dbHalfTimerRef.set(0);
-            })
-            listenFirebaseKey(dbHostAction,(dbHostActionRef)=>{
-                dbHostActionRef.set({
-                    action : "Continue Game",
-                    time : Date.now()
-                })
+                dbHalfTimerRef.set(0)
+                .then(()=>{
+                    listenFirebaseKey(dbHostAction,(dbHostActionRef)=>{
+                        dbHostActionRef.set({
+                            action : "Continue Game",
+                            time : Date.now()
+                        })
+                    })
+                });
             })
         }
         else if(currentQuestionNumber === 9) {
