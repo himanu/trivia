@@ -135,7 +135,11 @@
         {#if isHost}
             Select a category
         {:else if !categoryName}
-            {hostname} (Host) will select one of the category
+            {#if hostname}
+                {hostname} (Host) will select one of the category
+            {:else}
+                Host will select one of the category
+            {/if}
         {:else if categoryName}
             <span class = "selectedCategoryName">{categoryName}</span>  is the current category
         {/if}

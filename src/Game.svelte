@@ -443,15 +443,20 @@
     .selectedOption {
         color : #fff;
         background : #6C44A8;
+        border : 0px solid #fff;
+        box-shadow : 1px 1px 10px #6C44A8;
     }
     .correctOption {
         background : #27AE60;
         color : #fff;
-        animation  : animateOption 2s 1
+        animation  : animateOption 2s 1;
+        border : 0px solid #fff;
+        box-shadow : 1px 1px 10px #27Ae60
     }
     .wrongOption {
         background: #C81919;
         color : #fff;
+        border : 0px solid #fff;
     }
     
     @keyframes animateOption {
