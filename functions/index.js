@@ -206,7 +206,7 @@ exports.setTimerOnChangeOfNumberOfOnlineUsers = functions.database.ref(`/trivia/
       .then((snap)=>{
         currentQuestionNumber =  snap[0].val();
         allQuestions = snap[1].val();
-        if(!allQuestions || !currentQuestionNumber) {
+        if(!allQuestions || currentQuestionNumber === undefined || currentQuestionNumber === null) {
           resolve();
           return;
         }
