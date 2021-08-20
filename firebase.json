@@ -10,12 +10,43 @@
   },
   "hosting": {
     "public": "public",
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Strict-Transport-Security",
+            "value": "max-age=31536000 ; includeSubDomains"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "allow"
+          },
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "Content-Security-Policy",
+            "value": "frame-ancestors https://*.letsdive.io/"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "no-referrer"
+          }
+        ]
+      }
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
     "rewrites": [
+      {
+        "source": "/setAllQuestions",
+        "function": "setAllQuestions"
+      },
       {
         "source": "**",
         "destination": "/index.html"
@@ -34,7 +65,7 @@
     },
     "ui": {
       "enabled": true,
-      "port" : 4000
+      "port": 4000
     }
   }
 }

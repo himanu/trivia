@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "da-trivia-dev-4f8ae"
+    "default": "da-trivia-dev-4f8ae",
+    "dev": "da-trivia-dev-4f8ae",
+    "prod": "da-trivia-prod"
   }
 }
