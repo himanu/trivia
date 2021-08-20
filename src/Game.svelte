@@ -275,55 +275,56 @@
                 <rect x="0" y="0" width="100%" height="100%"  fill = "{borderColor}" stroke-dashoffset = "{strokeDashOffset + '%'}" stroke-dasharray = "{stroke + '%'} , {stroke1 + '%'}"/>
             </svg>
         </div>
-
-        <div class="answerScreen">
-            <div class="question">
-                {#if currentQuestionText}
-                    {currentQuestionText}
-                {/if}
-            </div>
-            <div class = "allOptions">
-                {#each options as option}
-                    {#if questionTimer === 0 }
-                        {#if option.optionId === answerOptionId}
-                            <div class="correctOption">
-                                {option.optionText}
-                            </div>
-                        {:else if option.optionId === selectedOptionId}
-                            <div class="wrongOption" >
-                                {option.optionText}
-                            </div>
+        <div class = "answerScreenParent">
+            <div class="answerScreen">
+                <div class="question">
+                    {#if currentQuestionText}
+                        {currentQuestionText}
+                    {/if}
+                </div>
+                <div class = "allOptions">
+                    {#each options as option}
+                        {#if questionTimer === 0 }
+                            {#if option.optionId === answerOptionId}
+                                <div class="correctOption">
+                                    {option.optionText}
+                                </div>
+                            {:else if option.optionId === selectedOptionId}
+                                <div class="wrongOption" >
+                                    {option.optionText}
+                                </div>
+                            {:else}
+                                <div class="simpleOption">
+                                    {option.optionText}
+                                </div>
+                            {/if}
                         {:else}
-                            <div class="simpleOption">
+                            <div class="option" class:selectedOption = {option.optionId === selectedOptionId} style = "cursor : {selectedOptionId === undefined?"pointer":""}" on:click = {() => handleOptionClick(option.optionId)}>
                                 {option.optionText}
                             </div>
                         {/if}
-                    {:else}
-                        <div class="option" class:selectedOption = {option.optionId === selectedOptionId} style = "cursor : {selectedOptionId === undefined?"pointer":""}" on:click = {() => handleOptionClick(option.optionId)}>
-                            {option.optionText}
-                        </div>
-                    {/if}
-                {/each}
-            </div>
-            <div class = "allAnswers">
-                {#each answerStatus as status}
-                    {#if status !== 3}
-                        <div title = {titleMap[status]}>
-                            <svg height="1rem" width="1rem">
-                                <circle cx="0.5rem" cy="0.5rem" r="0.5rem" fill = {colorMap[status]}/>
-                            </svg> 
-                        </div>
-                    {:else}
-                        <div class = "currentQuestionContainer" title = {titleMap[status]}>
-                            <svg height="2rem" width="2rem">
-                                <circle cx="1rem" cy="1rem" r="1rem" fill = {"#6C44A8"}/>
-                            </svg> 
-                            <div class = "currentQuestion">
-                                    {currentQuestionNumber + 1}
+                    {/each}
+                </div>
+                <div class = "allAnswers">
+                    {#each answerStatus as status}
+                        {#if status !== 3}
+                            <div title = {titleMap[status]}>
+                                <svg height="1rem" width="1rem">
+                                    <circle cx="0.5rem" cy="0.5rem" r="0.5rem" fill = {colorMap[status]}/>
+                                </svg> 
                             </div>
-                        </div>
-                    {/if}
-                {/each}
+                        {:else}
+                            <div class = "currentQuestionContainer" title = {titleMap[status]}>
+                                <svg height="2rem" width="2rem">
+                                    <circle cx="1rem" cy="1rem" r="1rem" fill = {"#6C44A8"}/>
+                                </svg> 
+                                <div class = "currentQuestion">
+                                        {currentQuestionNumber + 1}
+                                </div>
+                            </div>
+                        {/if}
+                    {/each}
+                </div>
             </div>
         </div>
     </div>
@@ -351,6 +352,7 @@
         flex-direction: column;
         align-items: center;
         height : 100%;
+        overflow-y: auto;
     }
     .answerScreenContainer {
         margin : auto 0;
@@ -395,11 +397,12 @@
 		stroke-width: 2rem;
 		stroke: #ccc;
 	}
-    .answerScreen {
+    .answerScreenParent {
         background-color: #fff;
-        padding : 1rem;
+        padding : 0.2rem;
         width : calc(100% - 3rem);
         height : calc(100% - 1rem);
+        border-radius: 1rem;
         display : flex;
         flex-direction : column;
         align-items: center;
@@ -407,8 +410,13 @@
         top : 50%;
         left : 50%;
         transform : translate(-50%,-50%);
-        border-radius: 1rem;
-        overflow-y : scroll;
+        overflow :visible;
+    }
+    .answerScreen {
+        width : 100%;
+        height : 100%;
+        padding: 0.8rem;
+        overflow-y : auto;
     }
     .question {
         font-family : 'Manrope';

@@ -348,6 +348,7 @@
         flex-direction: column;
         align-items: center;
         height : 100%;
+        overflow : auto;
     }
     .heading {
         font-family : 'Manrope';
