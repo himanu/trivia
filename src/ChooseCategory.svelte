@@ -1,6 +1,7 @@
 <script>
     import TriviaIcon from "./TriviaIcon.svelte";
-    import {dbHost,dbGameSessionRoundValue,dbAllCategoriesName,setAllQuestions,dbUsers,dbGameSessionRounds,dbHostAction, listenFirebaseKey} from './database';
+    import {dbHost,dbGameSessionRoundValue,dbAllCategoriesName,dbUsers,dbGameSessionRounds,dbHostAction, listenFirebaseKey} from './database';
+    import {setAllQuestions} from "./api";
     import {getParams,getGameSessionId} from './utils';
     import CustomIcon from './icons/CustomCategoryAdd.svelte';
     import CustomButton from './CustomButton.svelte';
@@ -108,7 +109,7 @@
         }
         let currentCategoryName = allCategoriesName[selectedCategoryId];
         await setAllQuestions({
-            "categoryId" : selectedCategoryId,
+            categoryId : selectedCategoryId,
             roundValue,
             gameSessionId
         });

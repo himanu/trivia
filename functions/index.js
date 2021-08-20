@@ -42,11 +42,11 @@ exports.updateIsOnlineKey = functions.database.ref('/trivia/{gameSessionId}/user
             })
             .catch(()=>{
                 resolve();
-                console.log(`Can't be able to update isOnline`);
+                console.error(`Can't be able to update isOnline`);
             })
           })
           .catch(()=>{
-            console.log('Can get users');
+            console.error('Can get users');
             resolve();
           })
         },5000)
@@ -78,7 +78,7 @@ exports.removeHostWhenOffline = functions.database.ref('/trivia/{gameSessionId}/
             resolve();
           })
           .catch(()=>{
-            console.log('Error occur while removing host');
+            console.error('Error occur while removing host');
             resolve();
           });
         }
@@ -125,17 +125,17 @@ exports.hostDelete = functions.database.ref("/trivia/{gameSessionId}/host")
             resolve();
           })
           .catch(()=>{
-            console.log('Host id set fail');
+            console.error('Host id set fail');
             resolve();
           });
         }
         else {
-          console.log('No online users');
+          console.error('No online users');
           resolve();
         }
       }
       catch(err) {
-        console.log('Something went wrong ',err);
+        console.error('Something went wrong ',err);
         resolve();
       }
     })
@@ -174,12 +174,12 @@ exports.setTimerTo0WhenEveryoneHaveAnswered = functions.database.ref(`/trivia/{g
           console.log('Question timer  is changed to 0');
         })
         .catch((err)=>{
-          console.log('Some error occur ',err);
+          console.error('Some error occur ',err);
         });
       }
      }
     catch(err) {
-      console.log('Something went wrong ',err);
+      console.error('Something went wrong ',err);
     }
   })  
 
@@ -236,7 +236,7 @@ exports.setTimerOnChangeOfNumberOfOnlineUsers = functions.database.ref(`/trivia/
         }
       })
       .catch((err)=>{
-        console.log('error ',err);
+        console.error('error ',err);
         resolve();
       })
     })
@@ -362,12 +362,12 @@ exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivi
     });
   })
 
-exports.setAllQuestions = functions.https.onCall(async(data)=>{
+exports.setAllQuestions = functions.https.onRequest(async(req, res)=>{
+  const {categoryId, gameSessionId, roundValue} = req.body; 
   const db = admin.database();
-  const categoryId = data.categoryId;
   let selectedCategoryRef = db.ref(`/trivia/allCategories/${categoryId}`);
    
-  let allQuestionsRef = db.ref(`/trivia/${data.gameSessionId}/rounds/${data.roundValue}/allQuestions`);
+  let allQuestionsRef = db.ref(`/trivia/${gameSessionId}/rounds/${roundValue}/allQuestions`);
   let categoryNameRef = allQuestionsRef.parent.child('categoryName');
   let currentQuestionRef = allQuestionsRef.parent.child('currentQuestionNumber');
   let pageRef = allQuestionsRef.parent.child('page');
@@ -375,7 +375,8 @@ exports.setAllQuestions = functions.https.onCall(async(data)=>{
   try {
     selectedCategorySnap = await selectedCategoryRef.get();
     if(!selectedCategorySnap.exists()) {
-      return console.log('selected category does not exist in database');
+      console.log('selected category does not exist in database');
+      res.send({error: ""});
     }
     selectedCategory = selectedCategorySnap.val();
     let categoryQuestions = selectedCategory['categoryQuestions'];
@@ -384,12 +385,16 @@ exports.setAllQuestions = functions.https.onCall(async(data)=>{
     
     return Promise.all([allQuestionsRef.set(categoryQuestions.slice(0,10)),categoryNameRef.set(categoryName),pageRef.set('Welcome')]).then(()=>{
       console.log('Both are success');
+      res.send({});
     })
     .catch((err)=>{
       console.log('error ' ,err);
+      res.send({error: ""});
     });
   }
-  catch {
+  catch(e) {
+    console.error(error);
+    res.send({error: ""});
     console.log('Something went wrong');
   }
 })
@@ -422,7 +427,7 @@ exports.startHalfTimer = functions.runWith(runtimeOpts).database.ref('/trivia/{g
             resolve();
           })
           .catch((err)=>{
-            console.log('error ',err);
+            console.error('error ',err);
             clearInterval(interval);
             resolve();
           });
@@ -467,7 +472,7 @@ const updateLeaderBoard = ({gameSessionId,scoreOfUsers}) => {
       console.log('Updateleaderboard success response is ',response);
     })
     .catch((error) => {
-      console.log('Updateleaderboard error is ',error);
+      console.error('Updateleaderboard error is ',error);
     });
 };
 
