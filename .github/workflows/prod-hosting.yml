@@ -38,7 +38,7 @@ jobs:
             - name: Set the Firebase Config
               uses: w9jds/firebase-action@master
               with:
-                  args: functions:config:set app.id="dapp_73673778c0014b1aa176adf8d3c2e8cb" app.secret="e5bfee7766ef932cfecff8647f57e51bd2b4e0ffca0bda1f6c27d2261ac8a9de" app.url="https://sable.letsdive.io"
+                  args: functions:config:set app.id=${{secrets.DAPP_ID}} app.secret=${{secrets.DAPP_SECRET}} app.url=${{secrets.DAPP_URL}}
               env:
                   GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
                   TARGET: dev
