@@ -34,12 +34,16 @@
             clearInterval(interval);
             interval = setInterval(()=>{
                 time = 1;
+
                 if(time === 1) {
                     clearInterval(interval);
                 }
             },1000);
         })
     })
+    $: {
+        console.log('time ',time)
+    }
     dbUsers.on('value',(snap)=>{
         if(!snap.exists()) {
             return;
@@ -417,6 +421,8 @@
         height : 100%;
         padding: 0.8rem;
         overflow-y : auto;
+        display : flex;
+        flex-direction:  column;
     }
     .question {
         font-family : 'Manrope';
@@ -433,6 +439,7 @@
         grid-template-columns: repeat(2,1fr);
         gap : 1rem;
         width : 100%;
+        margin : auto;
         margin-bottom : 1rem;
     }
     .option,.selectedOption,.correctOption,.wrongOption,.simpleOption {
