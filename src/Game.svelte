@@ -281,7 +281,7 @@
         </div>
         <div class = "answerScreenParent">
             <div class="answerScreen">
-                <div class="question">
+                <div class="question" on:mousedown= {() =>{ return false}} on:selectstart = {()=>{return false}}>
                     {#if currentQuestionText}
                         {currentQuestionText}
                     {/if}
