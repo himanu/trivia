@@ -266,102 +266,125 @@ exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivi
     let pageRef = snapshot.ref.parent.child('page');
     let halfTimerRef = snapshot.ref.parent.child('halfTimer');
     let gameSessionId = context.params.gameSessionId;
+    let nextQuestionWaitingTimerRef = snapshot.ref.parent.child('nextQuestionWaitingTimer');
     let data = {};
     
     return new Promise(async (resolve,reject)=>{
       let interval = setInterval(async()=>{
         //First get the question timer status
-        let questionTimerSnap = await questionTimerRef.get().catch((err)=>{console.log('Unable to get question timer ',err)});
-        questionTimer = questionTimerSnap.val();
-
-        questionTimer = questionTimer - 1;
-        if(questionTimer <= 0) {
-          if(questionTimer === 0) 
-            questionTimerRef.set(0);
-          clearInterval(interval);
-          
-          let lastTimer = setTimeout(async()=>{
-            await questionTimerRef.remove();
-            currentQuestionNumberRef.transaction( (count) => { 
-              if(count === 4) {
-                Promise.all([pageRef.set('HalfTime'),halfTimerRef.set(10)])
-                .then(()=>{
-                  console.log('Successful');
-                  return count;
-                })
-                .catch((err)=>{
-                  console.log('Some error occur ',err);
-                  return count;
-                })
-              }
-              else if(count === 9) {
-                // usersId , usersScore , gameSessionId
-                let allQuestionsRef = snapshot.ref.parent.child('allQuestions');
-                let allQuestions;
-                Promise.all([allQuestionsRef.get(), pageRef.set('HalfTime')])
-                .then((snap)=>{
-                  allQuestions = snap[0].val();
-                  if(!allQuestions) {
-                    console.log('All question not exists');
-                    return;
-                  }
-                  let scoreOfUsers = {};
-                  for(let i = 0; i<=9 ; i++) {
-                    let currQuestionAnswers = allQuestions[i]['usersAnswers'];
-                    let correctOption = allQuestions[i]['correctOption'];
-                    for(const userId in currQuestionAnswers) {
-                        let currUserAnswer = currQuestionAnswers[userId];
-                        if(currUserAnswer === correctOption) {
-                            if(scoreOfUsers[userId] === undefined) {
-                                scoreOfUsers[userId] =  1
-                            }
-                            else {
-                                scoreOfUsers[userId] += 1;
-                            }
-                        }
-                    }
-                  }
-                  updateLeaderBoard({gameSessionId,scoreOfUsers})
-                  .then(()=>{
-                    console.log('Update leader board is successful');
-                  })
-                  .catch((err)=>{
-                    console.log('Some error occur while updating leader board ',err);
-                  })
-                })
-              }
-              else if(count < 9){
-                return count + 1;
-              }
-            })
-            .then(()=> {
-              console.log('count of question number is set');
-              clearTimeout(lastTimer);
-              resolve();
-            })
-            .catch((err)=>{
-              console.log('err ',err);
-              clearTimeout(lastTimer);
-              resolve();
-            });
-
-          },4000);
-        }
-        else {
-          if(questionTimer) {
-            questionTimerRef.set(questionTimer)
-            .then(()=>{
-              console.log('Question timer is decremented');
-            })
-            .catch((err)=>{
-              console.log('Some error occurred while decrementing the question timer value ',err);
-            })
+        try {
+          let questionTimerSnap = await questionTimerRef.get();
+          if(!questionTimerSnap.exists() || questionTimerSnap.val() === undefined || questionTimerSnap.val() === null) {
+            console.log('Question timer not exits');
+            return resolve();
+          }
+          questionTimer = questionTimerSnap.val();
+          questionTimer = questionTimer - 1;
+          if(questionTimer <= 0) {
+            if(questionTimer === 0) {
+              await questionTimerRef.set(0);
+            }
+           
+            await nextQuestionWaitingTimerRef.set(5);
+            clearInterval(interval);
+            return resolve();
+          }
+          else {
+            if(questionTimer) {
+              questionTimerRef.set(questionTimer)
+            }
           }
         }
+        catch(err) {
+          console.log('error ',err);
+          return resolve();
+        }
+        
       },1000);
     });
   })
 
+exports.startNextQuestionWaitingTimer = functions.database.ref('/trivia/{gameSessionId}/rounds/{roundValue}/nextQuestionWaitingTimer')
+  .onCreate(async(snapshot,context)=>{
+    let timerValue = 5;
+    let interval;
+    let nextQuestionWaitingTimerRef = snapshot.ref;
+    let currentQuestionNumberRef = snapshot.ref.parent.child('currentQuestionNumber');
+    let questionTimerRef = snapshot.ref.parent.child('questionTimer');
+    let currentQuestionNumber,currentQuestionNumberSnap;
+    let pageRef = snapshot.ref.parent.child('page');
+    let halfTimerRef = snapshot.ref.parent.child('halfTimer');
+    let gameSessionId = context.params.gameSessionId;
+    let allQuestionsRef = snapshot.ref.parent.child('allQuestions');
+    let allQuestions;
+    clearInterval(interval);
+    return new Promise(async(resolve,reject)=>{
+      interval = setInterval(async()=>{
+        timerValue = timerValue - 1;
+        try{
+          if(timerValue > 0) {
+            nextQuestionWaitingTimerRef.set(timerValue);
+          }
+          else {
+            await nextQuestionWaitingTimerRef.set(0);
+            let snap = await Promise.all([currentQuestionNumberRef.get(),nextQuestionWaitingTimerRef.remove(),questionTimerRef.remove()]);
+            
+            // Now change the question number
+            currentQuestionNumberSnap = snap[0];
+            if(!currentQuestionNumberSnap.exists() || currentQuestionNumberSnap.val() === undefined || currentQuestionNumberSnap.val() === null) {
+              console.log('Current Question number not exists');
+              clearInterval(interval);
+              return resolve();
+            }
+            currentQuestionNumber = currentQuestionNumberSnap.val();
+            if(currentQuestionNumber === 4) {
+              await Promise.all([pageRef.set('HalfTime'),halfTimerRef.set(10)]);
+              clearInterval(interval);
+              return resolve();
+            }
+            else if( currentQuestionNumber === 9) {
+              let snap = await Promise.all([allQuestionsRef.get(),pageRef.set('HalfTime')]);
+              if(!snap[0].exists() || snap[0].val() === undefined || snap[0].val() === null) {
+                console.log('allQuestion not exist in database so unable to update leader board data');
+                return resolve();
+              }
+              allQuestions = snap[0].val();
+              let scoreOfUsers = {};
+              for(let i = 0; i<=9 ; i++) {
+                let currQuestionAnswers = allQuestions[i]['usersAnswers'];
+                let correctOption = allQuestions[i]['correctOption'];
+                for(const userId in currQuestionAnswers) {
+                  let userAnswer = currQuestionAnswers[userId];
+                  if(userAnswer === correctOption ) {
+                    if(!scoreOfUsers[userId]) {
+                      scoreOfUsers = 1;
+                    }
+                    else {
+                      scoreOfUsers += 1;
+                    }
+                  }
+                }
+              }
+              await updateLeaderBoard({gameSessionId,scoreOfUsers})
+              console.log('Leader board is updated');
+              clearInterval(interval);
+              return resolve();
+            }
+            else {
+              await currentQuestionNumberRef.set(currentQuestionNumber + 1)
+              clearInterval(interval);
+              return resolve();
+            }
+          }
+        }
+        catch(err) {
+          console.log('Some error occur ',err);
+          clearInterval(interval);
+          return resolve();
+        }
+      },1000);
+    })
+  })
 exports.setAllQuestions = functions.https.onRequest(async(req, res)=>{
   const {categoryId, gameSessionId, roundValue} = req.body; 
   const db = admin.database();

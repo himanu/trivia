@@ -1,10 +1,11 @@
 <script>
     import TriviaIcon from './TriviaIcon.svelte';
-    import {dbCurrentQuestionNumber,listenFirebaseKey,dbAllQuestion, dbQuestionTimer,dbUsers,dbGameSessionRoundValue} from './database'
+    import {dbCurrentQuestionNumber,listenFirebaseKey,dbAllQuestion, dbQuestionTimer,dbUsers,dbGameSessionRoundValue,dbNextQuestionWaitingTimer} from './database'
     import { getParams } from './utils';
     import {fly} from 'svelte/transition';
     import RoundIndicator from './RoundIndicator.svelte';
     import {info} from './Notifier';
+    import CustomButton from './CustomButton.svelte';
 
     let currentQuestionNumber;
     let allQuestions;
@@ -19,7 +20,16 @@
     let interval;
     let requestAnimationFrameId;
     let timeToShow;
-    
+    let nextQuestionWaitingTimer;
+
+    listenFirebaseKey(dbNextQuestionWaitingTimer,(dbNextQuestionWaitingTimerRef)=>{
+        dbNextQuestionWaitingTimerRef.on('value',(snap)=>{
+            if(!snap.exists()) {
+                return;
+            }
+            nextQuestionWaitingTimer = snap.val();
+        })
+    })
     listenFirebaseKey((dbCurrentQuestionNumber),(dbCurrentQuestionNumberRef)=>{
         dbCurrentQuestionNumberRef.on('value',(snap)=>{
             if(!snap.exists()) {
@@ -168,6 +178,7 @@
     })
     
     let selectedOptionId;
+    let lockedOptionId;
     let userId = getParams('userId');
     let answerStatus = [];
     let usersAnswers;
@@ -179,7 +190,7 @@
             usersAnswers = (allQuestions[currentQuestionNumber]['usersAnswers']);
             answerOptionId = allQuestions[currentQuestionNumber]['correctOption'];
             if(usersAnswers) {
-                selectedOptionId = usersAnswers[userId];
+                lockedOptionId = usersAnswers[userId];
             }
 
             options = [];
@@ -210,10 +221,10 @@
     }
     $: {
         if(questionTimer === 0 && allQuestions && currentQuestionNumber != undefined && currentQuestionNumber !== null) {
-            if(answerOptionId === selectedOptionId) {
+            if(answerOptionId === lockedOptionId) {
                 borderColor = "#27AE60";
             }
-            else if(selectedOptionId != undefined){
+            else if(lockedOptionId != undefined){
                 borderColor = "#C81919";
             }
             else {
@@ -222,13 +233,13 @@
         }
     }
     
-    function handleOptionClick(optionId) {
-        if(selectedOptionId !== undefined) {
+    function handleOptionClick() {
+        if(selectedOptionId === undefined) {
             return ;
         }
         // selectedOptionId = optionId;
         listenFirebaseKey(dbAllQuestion,(dbAllQuestionRef)=>{
-            dbAllQuestionRef.child(currentQuestionNumber).child('usersAnswers').child(userId).set(optionId);
+            dbAllQuestionRef.child(currentQuestionNumber).child('usersAnswers').child(userId).set(selectedOptionId);
         })
     }
     let colorMap = {
@@ -259,9 +270,9 @@
                 {:else if questionTimer > 0}
                     0:0{questionTimer}
                 {:else if questionTimer === 0}
-                    {#if answerOptionId === selectedOptionId}
+                    {#if answerOptionId === lockedOptionId}
                         Correct!
-                    {:else if selectedOptionId != undefined}
+                    {:else if lockedOptionId != undefined}
                         Wrong!
                     {:else}
                         Times Up!
@@ -293,7 +304,7 @@
                                 <div class="correctOption">
                                     {option.optionText}
                                 </div>
-                            {:else if option.optionId === selectedOptionId}
+                            {:else if option.optionId === lockedOptionId}
                                 <div class="wrongOption" >
                                     {option.optionText}
                                 </div>
@@ -303,11 +314,22 @@
                                 </div>
                             {/if}
                         {:else}
-                            <div class="option" class:selectedOption = {option.optionId === selectedOptionId} style = "cursor : {selectedOptionId === undefined?"pointer":""}" on:click = {() => handleOptionClick(option.optionId)}>
+                            <div class="option" class:selectedOption = {option.optionId === selectedOptionId} style = "cursor : {selectedOptionId === undefined?"pointer":""}" on:click = {() => selectedOptionId = option.optionId}>
                                 {option.optionText}
                             </div>
                         {/if}
                     {/each}
+                </div>
+                <div class="lockInBtn">
+                    {#if questionTimer}
+                        {#if lockedOptionId === undefined || lockedOptionId === null}
+                            <CustomButton on:submit = {handleOptionClick(selectedOptionId)} btnText = 'Lock In' disableBtn = {selectedOptionId === undefined || selectedOptionId ===  null} tooltipMsg = {(selectedOptionId === undefined || selectedOptionId ===  null)?'Select a option':'' }/>
+                        {:else}
+                            Waiting for others...
+                        {/if}
+                    {:else if questionTimer === 0}
+                        Next question in... {nextQuestionWaitingTimer} 
+                    {/if}
                 </div>
                 <div class = "allAnswers">
                     {#each answerStatus as status}
