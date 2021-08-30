@@ -6,6 +6,8 @@
     import CustomButton from './CustomButton.svelte';
     import YouAreOffline from './YouAreOffline.svelte';
     import {info} from './Notifier';
+    import Trophy from './icons/Trophy.svelte';
+    import Tie from './icons/Tie.svelte';
 
     let userId = getParams('userId');
     let users;
@@ -39,7 +41,14 @@
             if(!snap.exists()) {
                 return;
             }
+
             halfTime = snap.val();
+            if(halfTime === 0) {
+                disableContinueBtn = true;
+            }
+            else {
+                disableContinueBtn = false;
+            }
         })
     })
 
@@ -181,22 +190,28 @@
         }
     }
     let disableContinueBtn = false;
-    async function handleContinueButton() {
+    function handleContinueButton() {
         if(disableContinueBtn) {
             return;
         }
         disableContinueBtn = true;
         if(currentQuestionNumber === 4) {
-            listenFirebaseKey(dbHalfTimer,(dbHalfTimerRef)=>{
-                dbHalfTimerRef.set(0)
-                .then(()=>{
-                    listenFirebaseKey(dbHostAction,(dbHostActionRef)=>{
-                        dbHostActionRef.set({
-                            action : "Continue Game",
-                            time : Date.now()
+            listenFirebaseKey(dbHalfTimer,async(dbHalfTimerRef)=>{
+                // let halfTimerSnap = await dbHalfTimerRef.get();
+                // if(!halfTimerSnap.exists() || halfTimerSnap.val() == null || halfTimerSnap.val() === 0) {
+                //     return ;
+                // }
+                // else {
+                    dbHalfTimerRef.set(0)
+                    .then(()=>{
+                        listenFirebaseKey(dbHostAction,(dbHostActionRef)=>{
+                            dbHostActionRef.set({
+                                action : "Continue Game",
+                                time : Date.now()
+                            })
                         })
-                    })
-                });
+                    });
+                // }
             })
         }
         else if(currentQuestionNumber === 9) {
@@ -262,14 +277,14 @@
                         {scoreLeader.id === userId?"You ":scoreLeaderName} won!
                     </div>
                     <div class="icon">
-                        
+                        <Trophy/>
                     </div>
                 {:else if isItTie}
                     <div class="text">
                         It's a tie!
                     </div>
                     <div class="icon">
-                        
+                        <Tie/>
                     </div>
                 {/if}
             {/if}
@@ -278,7 +293,7 @@
             {#if currentQuestionNumber === 4}
                 5 more questions to go
             {:else if currentQuestionNumber === 9}
-                {#if scoreOfUser[userId] < scoreOfUser[scoreLeader.id]}
+                {#if scoreOfUser[userId] < scoreOfUser[scoreLeader.id] || isItTie}
                     Better luck next time
                 {:else if !isItTie}
                     Well played
@@ -356,6 +371,8 @@
         font-size : 1.25rem;
         color : #fff;
         margin-top : 1rem;
+        display : flex;
+        gap : 0.5rem;
     }
     .message {
         font-family : 'Manrope';

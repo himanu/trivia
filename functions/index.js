@@ -262,20 +262,18 @@ exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivi
   .onCreate(async(snapshot,context)=>{
     let questionTimer = snapshot.val();
     let questionTimerRef = snapshot.ref;
-    let currentQuestionNumberRef = snapshot.ref.parent.child('currentQuestionNumber');
     let pageRef = snapshot.ref.parent.child('page');
-    let halfTimerRef = snapshot.ref.parent.child('halfTimer');
-    let gameSessionId = context.params.gameSessionId;
+    let currentQuestionNumberRef = snapshot.ref.parent.child('currentQuestionNumber');
     let nextQuestionWaitingTimerRef = snapshot.ref.parent.child('nextQuestionWaitingTimer');
-    let data = {};
     
     return new Promise(async (resolve,reject)=>{
       let interval = setInterval(async()=>{
         //First get the question timer status
         try {
-          let questionTimerSnap = await questionTimerRef.get();
-          if(!questionTimerSnap.exists() || questionTimerSnap.val() === undefined || questionTimerSnap.val() === null) {
-            console.log('Question timer not exits');
+          let snap = await Promise.all( [questionTimerRef.get()]);
+          let questionTimerSnap = snap[0];
+          if(!questionTimerSnap.exists() || questionTimerSnap.val() == null) {
+            console.log('Question timer not exists');
             return resolve();
           }
           questionTimer = questionTimerSnap.val();
@@ -284,7 +282,6 @@ exports.startQuestionTimer = functions.runWith(runtimeOpts).database.ref('/trivi
             if(questionTimer === 0) {
               await questionTimerRef.set(0);
             }
-           
             await nextQuestionWaitingTimerRef.set(5);
             clearInterval(interval);
             return resolve();
@@ -317,7 +314,6 @@ exports.startNextQuestionWaitingTimer = functions.database.ref('/trivia/{gameSes
     let gameSessionId = context.params.gameSessionId;
     let allQuestionsRef = snapshot.ref.parent.child('allQuestions');
     let allQuestions;
-    clearInterval(interval);
     return new Promise(async(resolve,reject)=>{
       interval = setInterval(async()=>{
         timerValue = timerValue - 1;
@@ -326,20 +322,20 @@ exports.startNextQuestionWaitingTimer = functions.database.ref('/trivia/{gameSes
             nextQuestionWaitingTimerRef.set(timerValue);
           }
           else {
+            clearInterval(interval);
             await nextQuestionWaitingTimerRef.set(0);
-            let snap = await Promise.all([currentQuestionNumberRef.get(),nextQuestionWaitingTimerRef.remove(),questionTimerRef.remove()]);
+            let snap = await Promise.all([currentQuestionNumberRef.get(),nextQuestionWaitingTimerRef.remove().then(()=>console.log('Waiting timer is removed')),questionTimerRef.remove()]);
             
             // Now change the question number
             currentQuestionNumberSnap = snap[0];
             if(!currentQuestionNumberSnap.exists() || currentQuestionNumberSnap.val() === undefined || currentQuestionNumberSnap.val() === null) {
               console.log('Current Question number not exists');
-              clearInterval(interval);
               return resolve();
             }
             currentQuestionNumber = currentQuestionNumberSnap.val();
             if(currentQuestionNumber === 4) {
               await Promise.all([pageRef.set('HalfTime'),halfTimerRef.set(10)]);
-              clearInterval(interval);
+              // clearInterval(interval);
               return resolve();
             }
             else if( currentQuestionNumber === 9) {
@@ -367,12 +363,12 @@ exports.startNextQuestionWaitingTimer = functions.database.ref('/trivia/{gameSes
               }
               await updateLeaderBoard({gameSessionId,scoreOfUsers})
               console.log('Leader board is updated');
-              clearInterval(interval);
+              // clearInterval(interval);
               return resolve();
             }
-            else {
+            else if(currentQuestionNumber < 9){
               await currentQuestionNumberRef.set(currentQuestionNumber + 1)
-              clearInterval(interval);
+              // clearInterval(interval);
               return resolve();
             }
           }
@@ -415,10 +411,9 @@ exports.setAllQuestions = functions.https.onRequest(async(req, res)=>{
       res.send({error: ""});
     });
   }
-  catch(e) {
-    console.error(error);
+  catch(err) {
     res.send({error: ""});
-    console.log('Something went wrong');
+    console.log('Something went wrong ',err);
   }
 })
 
