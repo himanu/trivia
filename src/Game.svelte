@@ -299,7 +299,7 @@
                 <rect x="0" y="0" width="100%" height="100%"  fill = "{borderColor}" stroke-dashoffset = "{strokeDashOffset + '%'}" stroke-dasharray = "{stroke + '%'} , {stroke1 + '%'}"/>
             </svg>
         </div>
-        <div class = "answerScreenParent">
+        <div class = "answerScreenParent" onmousedown="return false" onselectstart="return false">
             <div class="answerScreen">
                 <div class="question" onmousedown="return false" onselectstart="return false">
 

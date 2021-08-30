@@ -438,7 +438,7 @@ exports.startHalfTimer = functions.runWith(runtimeOpts).database.ref('/trivia/{g
         timerValue = timerValue - 1;
         if( timerValue <= 0) {
           await halfTimerRef.set(0);
-          Promise.all([pageRef.set('Game'),currentQuestionNumberRef.transaction(count => count + 1),halfTimerRef.remove()])
+          Promise.all([pageRef.set('Game'),currentQuestionNumberRef.transaction(count => {if(count === 4)return count + 1;else return count}),halfTimerRef.remove()])
           .then(()=>{
             console.log('page is set to game, question number is incremented and half timer is removed');
             clearInterval(interval);
