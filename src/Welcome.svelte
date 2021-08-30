@@ -1,5 +1,5 @@
 <script>
-    import {dbUsers,dbHost,dbGameSessionRounds,listenFirebaseKey,dbPage,dbGameSessionRoundValue, dbHostAction} from './database';
+    import {dbUsers,dbHost,listenFirebaseKey,dbPage,dbCategoryName, dbHostAction,dbGameSessionRound} from './database';
     import {getParams} from './utils';
     import Tick from './OnlineTick.svelte';
     import DisconnectedSvg from './DisconnectedSvg.svelte';
@@ -17,31 +17,15 @@
     let noOfOnlinePlayers = 0;
     let disableStartGameBtn = false;
     let page;
-    let dbCategoryName;
-    let dbGameSessionRound;
     let roundValue;
-    let hostAction;
-    
-    const categorySnapFun = (snap)=>{
-        if(!snap.exists()) {
-            categoryName = undefined;
-            return;
-        }
-        categoryName = snap.val();
-    }
 
-    dbGameSessionRoundValue.on('value',(snap)=>{
-        if(!snap.exists()) {
-            return;
-        }
-        roundValue = snap.val();
-        dbGameSessionRound = dbGameSessionRounds.child(roundValue);
-        dbCategoryName = dbGameSessionRound.child('categoryName');
-
-        if(dbCategoryName) {
-            dbCategoryName.off('value',categorySnapFun);
-        }
-        dbCategoryName.on('value',categorySnapFun);
+    listenFirebaseKey(dbCategoryName,(dbCategoryNameRef)=>{
+        dbCategoryNameRef.on('value',(snap)=>{
+            if(!snap.exists()) {
+                return;
+            }
+            categoryName = snap.val();
+        })
     })
 
     dbUsers.on('value',(snap)=>{
@@ -83,10 +67,6 @@
             hostName = users[hostId]['userName'].split(' ')[0];
         }
     }
-
-    listenFirebaseKey(dbHostAction,(dbHostActionRef)=>{
-
-    })
     function processName(currUser) {
         let name = currUser.userName;
         let fname = name?.split(" ")[0];
@@ -149,14 +129,16 @@
             return;
         }
         disableStartGameBtn = true;
-        dbGameSessionRound.update({
-            page : "Game",
-            currentQuestionNumber : 0
-        }).then(()=>{
-            listenFirebaseKey(dbHostAction,(dbHostActionRef)=>{
-                dbHostActionRef.set({
-                    action : "Start Game",
-                    time : Date.now()
+        listenFirebaseKey(dbGameSessionRound,(dbGameSessionRoundRef)=>{
+            dbGameSessionRoundRef.update({
+                page : "Game",
+                currentQuestionNumber : 0
+            }).then(()=>{
+                listenFirebaseKey(dbHostAction,(dbHostActionRef)=>{
+                    dbHostActionRef.set({
+                        action : "Start Game",
+                        time : Date.now()
+                    })
                 })
             })
         })

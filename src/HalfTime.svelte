@@ -197,21 +197,15 @@
         disableContinueBtn = true;
         if(currentQuestionNumber === 4) {
             listenFirebaseKey(dbHalfTimer,async(dbHalfTimerRef)=>{
-                // let halfTimerSnap = await dbHalfTimerRef.get();
-                // if(!halfTimerSnap.exists() || halfTimerSnap.val() == null || halfTimerSnap.val() === 0) {
-                //     return ;
-                // }
-                // else {
-                    dbHalfTimerRef.set(0)
-                    .then(()=>{
-                        listenFirebaseKey(dbHostAction,(dbHostActionRef)=>{
-                            dbHostActionRef.set({
-                                action : "Continue Game",
-                                time : Date.now()
-                            })
+                dbHalfTimerRef.set(0)
+                .then(()=>{
+                    listenFirebaseKey(dbHostAction,(dbHostActionRef)=>{
+                        dbHostActionRef.set({
+                            action : "Continue Game",
+                            time : Date.now()
                         })
-                    });
-                // }
+                    })
+                });
             })
         }
         else if(currentQuestionNumber === 9) {
