@@ -49,7 +49,6 @@ if(process.env.EMULATE) {
       console.log("To automatically connect the Firebase SDKs to running emulators, replace '/__/firebase/init.js' with '/__/firebase/init.js?useEmulator=true' in your index.html");
   }
 }
-
 let roundValue = 1;
 function getRoundValue() {
     return roundValue;
@@ -105,7 +104,6 @@ dbGameSessionRoundValue.on("value", (snap) => {
   }
   roundValue = snap.val();
 })
-
 dbAllCategories.set(allCategoriesObject); 
 dbAllCategoriesName.set(categoriesNameArray);
 
