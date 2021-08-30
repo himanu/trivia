@@ -6,7 +6,7 @@
     "build": "rollup -c",
     "dev": "env-cmd -f .env.development rollup -c -w",
     "dev:emulate": "env-cmd -f .env.development.emulate rollup -c -w & npm run emulate",
-    "emulate": "firebase emulators:start --debug",
+    "emulate": "firebase emulators:start",
     "start": "sirv public --no-clear",
     "build:dev": "env-cmd -f .env.development npm run build",
     "build:prod": "env-cmd -f .env.prod npm run build",

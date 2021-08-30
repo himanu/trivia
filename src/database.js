@@ -1,7 +1,7 @@
 import firebase from "firebase/app";
 import "firebase/database";
 import 'firebase/functions';
-import { getGameSessionId, getParams } from "./utils";
+import { getGameSessionId, getParams, allCategoriesObject, categoriesNameArray} from "./utils";
 
 const firebaseConfig = {
 	apiKey: process.env.API_KEY,
@@ -15,40 +15,40 @@ const firebaseConfig = {
 
   // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
-// if(process.env.EMULATE) {
-//     var firebaseEmulators = {
-//       "database": {
-//         "host": "localhost",
-//         "port": 9000
-//       },
-//       "functions": {
-//         "host": "localhost",
-//         "port": 5001
-//       }
-//     };
-//   if (firebaseEmulators) {
-//       console.log("Automatically connecting Firebase SDKs to running emulators:");
-//       Object.keys(firebaseEmulators).forEach(function(key) {
-//       console.log('\t' + key + ': http://' +  firebaseEmulators[key].host + ':' + firebaseEmulators[key].port );
-//       });
-//       if (firebaseEmulators.database && typeof firebase.database === 'function') {
-//       firebase.database().useEmulator(firebaseEmulators.database.host, firebaseEmulators.database.port);
-//       }
-//       if (firebaseEmulators.firestore && typeof firebase.firestore === 'function') {
-//       firebase.firestore().useEmulator(firebaseEmulators.firestore.host, firebaseEmulators.firestore.port);
-//       }
-//       if (firebaseEmulators.functions && typeof firebase.functions === 'function') {
-//       firebase.functions().useEmulator(firebaseEmulators.functions.host, firebaseEmulators.functions.port);
-//       }
-//       if (firebaseEmulators.auth && typeof firebase.auth === 'function') {
-//       firebase.auth().useEmulator('http://' + firebaseEmulators.auth.host + ':' + firebaseEmulators.auth.port);
-//       }
-//   } else {
-//       console.log("To automatically connect the Firebase SDKs to running emulators, replace '/__/firebase/init.js' with '/__/firebase/init.js?useEmulator=true' in your index.html");
-//   }
-// }
+console.log(process.env)
+if(process.env.EMULATE) {
+    var firebaseEmulators = {
+      "database": {
+        "host": "localhost",
+        "port": 9000
+      },
+      "functions": {
+        "host": "localhost",
+        "port": 5001
+      }
+    };
 
-
+  if (firebaseEmulators) {
+      console.log("Automatically connecting Firebase SDKs to running emulators:");
+      Object.keys(firebaseEmulators).forEach(function(key) {
+      console.log('\t' + key + ': http://' +  firebaseEmulators[key].host + ':' + firebaseEmulators[key].port );
+      });
+      if (firebaseEmulators.database && typeof firebase.database === 'function') {
+      firebase.database().useEmulator(firebaseEmulators.database.host, firebaseEmulators.database.port);
+      }
+      if (firebaseEmulators.firestore && typeof firebase.firestore === 'function') {
+      firebase.firestore().useEmulator(firebaseEmulators.firestore.host, firebaseEmulators.firestore.port);
+      }
+      if (firebaseEmulators.functions && typeof firebase.functions === 'function') {
+      firebase.functions().useEmulator(firebaseEmulators.functions.host, firebaseEmulators.functions.port);
+      }
+      if (firebaseEmulators.auth && typeof firebase.auth === 'function') {
+      firebase.auth().useEmulator('http://' + firebaseEmulators.auth.host + ':' + firebaseEmulators.auth.port);
+      }
+  } else {
+      console.log("To automatically connect the Firebase SDKs to running emulators, replace '/__/firebase/init.js' with '/__/firebase/init.js?useEmulator=true' in your index.html");
+  }
+}
 let roundValue = 1;
 function getRoundValue() {
     return roundValue;
@@ -76,6 +76,7 @@ export const dbAllQuestion = ()=> dbGameSessionRound().child('allQuestions');
 export const dbCategoryName = ()=> dbGameSessionRound().child('categoryName');
 export const dbQuestionTimer = ()=> dbGameSessionRound().child('questionTimer');
 export const dbHostAction = ()=> dbGameSessionRound().child('hostAction');
+export const dbNextQuestionWaitingTimer = ()=> dbGameSessionRound().child('nextQuestionWaitingTimer');
 
 export function listenFirebaseKey(key,callback) {
   roundTimeValuePromise.then(()=>{
@@ -98,13 +99,14 @@ dbGameSessionRoundValue.on("value", (snap) => {
   if(!snap.exists()) {
       dbGameSessionRoundValue.set(1);
       roundValue = 1;
+      console.log('roundValue not exists ',snap.val());
       return ;
   }
   roundValue = snap.val();
 })
-// console.log(allCategoriesObject[0]['categoryQuestions'].length);
-// dbAllCategories.set(allCategoriesObject); 
-// dbAllCategoriesName.set(categoriesNameArray);
+dbAllCategories.set(allCategoriesObject); 
+dbAllCategoriesName.set(categoriesNameArray);
+
 var connectedRef = firebase.database().ref('.info/connected');
 connectedRef.on('value', (snap) => {
   if (snap.val() === true) {
@@ -119,12 +121,6 @@ connectedRef.on('value', (snap) => {
     });
   }
 });
-// dbScoreOfUser.once('value',(snap)=>{
-//   if(!snap.exists()) {
-//       dbScoreOfUser.set(0);
-//       return;
-//   }
-// })
 dbUser.update({
   id: getParams('userId'),
   userName: getParams('userName'),

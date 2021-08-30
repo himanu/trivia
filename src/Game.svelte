@@ -1,10 +1,11 @@
 <script>
     import TriviaIcon from './TriviaIcon.svelte';
-    import {dbCurrentQuestionNumber,listenFirebaseKey,dbAllQuestion, dbQuestionTimer,dbUsers,dbGameSessionRoundValue} from './database'
+    import {dbCurrentQuestionNumber,listenFirebaseKey,dbAllQuestion, dbQuestionTimer,dbUsers,dbGameSessionRoundValue,dbNextQuestionWaitingTimer} from './database'
     import { getParams } from './utils';
     import {fly} from 'svelte/transition';
     import RoundIndicator from './RoundIndicator.svelte';
     import {info} from './Notifier';
+    import CustomButton from './CustomButton.svelte';
 
     let currentQuestionNumber;
     let allQuestions;
@@ -19,7 +20,17 @@
     let interval;
     let requestAnimationFrameId;
     let timeToShow;
-    
+    let nextQuestionWaitingTimer;
+
+    listenFirebaseKey(dbNextQuestionWaitingTimer,(dbNextQuestionWaitingTimerRef)=>{
+        dbNextQuestionWaitingTimerRef.on('value',(snap)=>{
+            if(!snap.exists()) {
+                nextQuestionWaitingTimer = undefined;
+                return;
+            }
+            nextQuestionWaitingTimer = snap.val();
+        })
+    })
     listenFirebaseKey((dbCurrentQuestionNumber),(dbCurrentQuestionNumberRef)=>{
         dbCurrentQuestionNumberRef.on('value',(snap)=>{
             if(!snap.exists()) {
@@ -27,6 +38,7 @@
             }
             currentQuestionNumber = snap.val();
             selectedOptionId = undefined;
+            lockedOptionId = undefined;
             time = 0;
             questionTimer = 30;
             borderColor = "#27AE60";
@@ -168,6 +180,7 @@
     })
     
     let selectedOptionId;
+    let lockedOptionId;
     let userId = getParams('userId');
     let answerStatus = [];
     let usersAnswers;
@@ -179,7 +192,7 @@
             usersAnswers = (allQuestions[currentQuestionNumber]['usersAnswers']);
             answerOptionId = allQuestions[currentQuestionNumber]['correctOption'];
             if(usersAnswers) {
-                selectedOptionId = usersAnswers[userId];
+                lockedOptionId = usersAnswers[userId];
             }
 
             options = [];
@@ -210,10 +223,10 @@
     }
     $: {
         if(questionTimer === 0 && allQuestions && currentQuestionNumber != undefined && currentQuestionNumber !== null) {
-            if(answerOptionId === selectedOptionId) {
+            if(answerOptionId === lockedOptionId) {
                 borderColor = "#27AE60";
             }
-            else if(selectedOptionId != undefined){
+            else if(lockedOptionId != undefined){
                 borderColor = "#C81919";
             }
             else {
@@ -222,14 +235,21 @@
         }
     }
     
-    function handleOptionClick(optionId) {
-        if(selectedOptionId !== undefined) {
+    function handleLockInBtn() {
+        if(selectedOptionId == null) {
             return ;
         }
         // selectedOptionId = optionId;
         listenFirebaseKey(dbAllQuestion,(dbAllQuestionRef)=>{
-            dbAllQuestionRef.child(currentQuestionNumber).child('usersAnswers').child(userId).set(optionId);
+            dbAllQuestionRef.child(currentQuestionNumber).child('usersAnswers').child(userId).set(selectedOptionId);
         })
+    }
+    function handleOptionClick(option) {
+        if(lockedOptionId == null) {
+            selectedOptionId = option.optionId;
+            return;
+        } 
+        console.log('Answer is alreay locked');
     }
     let colorMap = {
         0 : "#C81919",
@@ -259,9 +279,9 @@
                 {:else if questionTimer > 0}
                     0:0{questionTimer}
                 {:else if questionTimer === 0}
-                    {#if answerOptionId === selectedOptionId}
+                    {#if answerOptionId === lockedOptionId}
                         Correct!
-                    {:else if selectedOptionId != undefined}
+                    {:else if lockedOptionId != undefined}
                         Wrong!
                     {:else}
                         Times Up!
@@ -281,7 +301,8 @@
         </div>
         <div class = "answerScreenParent">
             <div class="answerScreen">
-                <div class="question" on:mousedown= {() =>{ return false}} on:selectstart = {()=>{return false}}>
+                <div class="question" onmousedown="return false" onselectstart="return false">
+
                     {#if currentQuestionText}
                         {currentQuestionText}
                     {/if}
@@ -293,7 +314,7 @@
                                 <div class="correctOption">
                                     {option.optionText}
                                 </div>
-                            {:else if option.optionId === selectedOptionId}
+                            {:else if option.optionId === lockedOptionId}
                                 <div class="wrongOption" >
                                     {option.optionText}
                                 </div>
@@ -303,11 +324,30 @@
                                 </div>
                             {/if}
                         {:else}
-                            <div class="option" class:selectedOption = {option.optionId === selectedOptionId} style = "cursor : {selectedOptionId === undefined?"pointer":""}" on:click = {() => handleOptionClick(option.optionId)}>
+                            <div class="option" class:hoverOption = {lockedOptionId == null && selectedOptionId != option.optionId} class:selectedOption = {option.optionId === selectedOptionId} style = "cursor : {lockedOptionId == null?"pointer":""}" on:click = {()=>handleOptionClick(option)}>
                                 {option.optionText}
                             </div>
                         {/if}
                     {/each}
+                </div>
+                <div class="lockInBtn">
+                    {#if questionTimer}
+                        {#if lockedOptionId == null}
+                            <CustomButton on:click = {handleLockInBtn} btnText = 'Lock In' disableBtn = {selectedOptionId == null} tooltipMsg = {(selectedOptionId == null)?'Select a option':'Are you sure to lock selected option?' }/>
+                        {:else}
+                            <div class="waiting">
+                                Waiting for others...
+                            </div>
+                        {/if}
+                    {:else if questionTimer === 0 && nextQuestionWaitingTimer}
+                        <div class="waiting">
+                            {#if currentQuestionNumber === 4 || currentQuestionNumber === 9}
+                                Leaderboard in... {nextQuestionWaitingTimer}
+                            {:else}
+                                Next question in... {nextQuestionWaitingTimer} 
+                            {/if}
+                        </div>
+                    {/if}
                 </div>
                 <div class = "allAnswers">
                     {#each answerStatus as status}
@@ -362,7 +402,7 @@
         margin : auto 0;
         padding : 0rem 1rem;
         width : 60vw;
-        min-height : 50vh;
+        min-height : 55vh;
         position : relative;
     }
     @media screen and (max-width : 1200px) {
@@ -402,18 +442,18 @@
 		stroke: #ccc;
 	}
     .answerScreenParent {
-        background-color: #fff;
-        padding : 0.2rem;
+        position : absolute;
         width : calc(100% - 3rem);
         height : calc(100% - 1rem);
+        top : 50%;
+        left : 50%;
+        transform : translate(-50%,-50%);
+        background-color: #fff;
+        padding : 0.2rem;
         border-radius: 1rem;
         display : flex;
         flex-direction : column;
         align-items: center;
-        position : absolute;
-        top : 50%;
-        left : 50%;
-        transform : translate(-50%,-50%);
         overflow :visible;
     }
     .answerScreen {
@@ -421,6 +461,7 @@
         height : 100%;
         padding: 0.8rem;
         overflow-y : auto;
+        overflow-x : visible;
         display : flex;
         flex-direction:  column;
     }
@@ -429,7 +470,7 @@
         font-size : 1rem;
         font-weight : 800;
         max-width : 80%;
-        margin : auto;
+        margin : 1rem auto;
         text-align : center;
         line-height : 1.25rem;
         color : #333;
@@ -439,8 +480,7 @@
         grid-template-columns: repeat(2,1fr);
         gap : 1rem;
         width : 100%;
-        margin : auto;
-        margin-bottom : 1rem;
+        margin : 1rem auto;
     }
     .option,.selectedOption,.correctOption,.wrongOption,.simpleOption {
         border : 2px solid #D9D9D9;
@@ -473,13 +513,15 @@
         color : #fff;
         border : 0px solid #fff;
     }
-    
+    .hoverOption:hover {
+        transform : scale(1.02);
+    }
     @keyframes animateOption {
         0% {
             transform: scale(1);
         }
         50% {
-            transform: scale(1.1);
+            transform: scale(1.025);
         }
         100% {
             transform: scale(1);
@@ -492,7 +534,7 @@
         font-weight : 700;
         color : #fff;
         position : absolute;
-        bottom : calc(100% - 0.5rem);
+        bottom : calc(100% - 0.75rem);
         left : 50%;
         transform: translateX(-50%);
         border-radius : 0.25rem;
@@ -519,4 +561,15 @@
         font-size : 0.75rem;
         font-weight : 700;
 	}
+    .lockInBtn {
+        display : flex;
+        justify-content: center;
+        margin : auto;
+    }
+    .waiting {
+        color : #6C44A8;
+        font-family: 'Manrope';
+        font-size : 0.85rem;
+        font-weight : 800;
+    }
 </style>

@@ -187,8 +187,12 @@
                         </div>
                     {/if}
                 {:else}
-                    {#if !categoryName && hostName}
-                        Ask {hostName}(host) to select a category
+                    {#if !categoryName}
+                        {#if hostName}
+                            Ask {hostName}(host) to select a category
+                        {:else}
+                            Ask host to select a category
+                        {/if}
                     {:else if noOfOnlinePlayers >= 2}
                         Waiting for {hostName}(Host) to start the game
                     {:else}
