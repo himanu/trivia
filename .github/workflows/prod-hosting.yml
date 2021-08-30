@@ -5,7 +5,7 @@ name: Deploy to Production Firebase Hosting on merge
 "on":
     push:
         branches:
-            - prodd
+            - prod
 
 env:
     API_KEY: ${{ secrets.API_KEY }}
