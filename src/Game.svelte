@@ -266,7 +266,7 @@
     
     
 </script>
-<div class = "gameContainer"> 
+<div class = "gameContainer" onmousedown="return false" onselectstart="return false"> 
     {#if time === 0}
         <RoundIndicator roundValue = {currentQuestionNumber + 1} msg = {"Question"}/>
     {/if}
