@@ -422,7 +422,7 @@
     }
     @media screen and (max-height : 600px) {
         .answerScreenContainer {
-            min-height : 60vh;
+            min-height : 70vh;
         }
     }
     @media screen and (max-height : 400px) {
