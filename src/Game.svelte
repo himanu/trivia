@@ -319,9 +319,12 @@
     <TriviaIcon/>
     <div class="parentContainer">
         <div class="otherPlayerStatus">
+            <div class="playerStatusHeading">
+                Players Status
+            </div>
             <div class="playerContainer">
                 {#each usersStatus as player}
-                    <div class="player" title = {player.locked?`${player.userName} has locked his answer`:`${player.userName} hasn't locked his answer`}>
+                    <div class="player" class:lockedPlayer = {player.locked} title = {player.locked?`${player.userName} has locked his answer`:`${player.userName} hasn't locked his answer`}>
                         <div class="playerDetails">
                             {#if validUserProfilePicture(player.profilePicture)}
                                 <img class = "profilePicture" src = {player.profilePicture} alt = "UserProfilePicture">
@@ -481,6 +484,9 @@
         margin : auto;
     }
     .otherPlayerStatus {
+        display : flex;
+        flex-direction: column;
+        gap : 0.5rem;
         position : relative;
         flex-grow : 100;
         padding : 0.5rem;
@@ -488,23 +494,40 @@
         background : #fff;
         border-radius : 1rem;
         margin-left : 1rem;
+        border : 0.5rem solid #6C44A8
+    }
+    .playerStatusHeading {
+        font-family: 'Manrope';
+        font-size : 1rem;
+        font-weight: 800;
+        color : #6C44A8;
+        padding : 0.5rem;
     }
     .playerContainer {
-        position : absolute;
+        position : relative;
         padding : 0.5rem;
         display : flex;
         flex-direction: column;
         gap : 1rem;
         align-items: center;
         width : calc(100% - 1rem);
-        height : calc(100% - 1rem);
         overflow-y : auto;
+        flex-grow : 100;
     }
     .player {
         display : flex;
         justify-content: space-between;
         align-items: center;
         width : 100%;
+        background : #6C44A8;
+        color : #fff;
+        padding : 0.5rem;
+        border-radius : 0.5rem;
+    }
+    .lockedPlayer {
+        background-color: #fff;
+        color : #333;
+        border : 2px solid #6C44A8
     }
     .playerDetails {
         display : flex;
@@ -540,7 +563,6 @@
         font-family:  'Manrope';
         font-weight : 700;
         font-size : 0.75rem;
-        color: #333;
         white-space : nowrap;
     }
     .answerStatus {
