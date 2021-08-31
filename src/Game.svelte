@@ -6,6 +6,9 @@
     import RoundIndicator from './RoundIndicator.svelte';
     import {info} from './Notifier';
     import CustomButton from './CustomButton.svelte';
+    import {onMount} from 'svelte';
+    import Locked from './icons/Locked.svelte';
+    import Unlocked from './icons/Unlocked.svelte'
 
     let currentQuestionNumber;
     let allQuestions;
@@ -19,8 +22,19 @@
     let pageHasRefreshed = true;
     let interval;
     let requestAnimationFrameId;
-    let timeToShow;
     let nextQuestionWaitingTimer;
+    let svgId;
+    let setIntervalInterval;
+    let stroke = 0;
+    let maxValueOfStroke = 384;
+    let strokeDashOffset = -64.8;
+    let stroke1 = maxValueOfStroke  - stroke;
+    let initialTime = 31;
+    let timeVal,timeVal1;
+    let usersStatus = [];
+    onMount(()=>{
+        maxValueOfStroke = svgId.getTotalLength();
+    })
 
     listenFirebaseKey(dbNextQuestionWaitingTimer,(dbNextQuestionWaitingTimerRef)=>{
         dbNextQuestionWaitingTimerRef.on('value',(snap)=>{
@@ -41,6 +55,7 @@
             lockedOptionId = undefined;
             time = 0;
             questionTimer = 30;
+            usersStatus = [];
             borderColor = "#27AE60";
             pageHasRefreshed = true;
             clearInterval(interval);
@@ -64,13 +79,29 @@
     })
     let noOfOnlinePlayers = 0;
     $: {
-        if(users) {
+        if(users && allQuestions && !(currentQuestionNumber == null)) {
             noOfOnlinePlayers = 0;
+            usersStatus = [];
+            let currentQuestionUsersAnswers = allQuestions[currentQuestionNumber]['usersAnswers'];
             for(const id in users) {
                 if(users[id].isOnline === true) {
                     noOfOnlinePlayers += 1;
+                    let obj = {
+                        userName : users[id]['userName'],
+                        profilePicture : users[id]['profilePicture'],
+                        id
+                    }
+                    if(currentQuestionUsersAnswers && !(currentQuestionUsersAnswers[id] == null)) {
+                        obj['locked'] = true;
+                    }
+                    else {
+                        obj['locked'] = false;
+                    }
+                    usersStatus.push(obj);
                 }
             }
+            usersStatus = usersStatus;
+            console.log('usersStatus ',usersStatus);
             if(noOfOnlinePlayers <= 1) {
                 dbGameSessionRoundValue.transaction((count)=>{
                     return count + 1;
@@ -91,15 +122,7 @@
         }
     }
 
-    let setIntervalInterval;
-    let stroke = 0;
-    //370 for full screen
-    let maxValueOfStroke = 384;
-    // -65 for full screen
-    let strokeDashOffset = -63;
-    let stroke1 = maxValueOfStroke  - stroke;
-    let initialTime = 31;
-    let timeVal,timeVal1;
+    
 
     listenFirebaseKey(dbQuestionTimer,(dbQuestionTimerRef)=>{
         dbQuestionTimerRef.on('value',(snap)=>{
@@ -157,6 +180,7 @@
             timeVal = timeVal - elapsed/1000;
             prev = curr;
         }
+        maxValueOfStroke = svgId.getTotalLength();
         if(timeVal <= 0) {
             cancelAnimationFrame(requestAnimationFrameId)
             prev = null;
@@ -230,7 +254,7 @@
                 borderColor = "#C81919";
             }
             else {
-                borderColor = "#6C44A8";
+                borderColor = "#4F4F4F";
             }
         }
     }
@@ -263,111 +287,163 @@
         2 : "No answer given",
         3 : "Current Question"
     }
-    
-    
+    function validUserProfilePicture(str) {
+        try {
+            new URL(str);
+            return true;
+        }
+        catch(err){
+            return false;
+        }
+    }
+    function processName(user){
+        let name = user.userName;
+        let fname = name?.split(" ")[0];
+        if(fname?.length > 10)
+        {
+            fname = name?.split(" ")[0].toUpperCase();
+            if(name?.split(" ")[1].toUpperCase()) {
+                fname += name?.split(" ")[1].toUpperCase();
+            }
+        }
+        if(user.id === userId) {
+            fname = fname + " (You)";
+        }
+        return fname;
+    }
 </script>
 <div class = "gameContainer" onmousedown="return false" onselectstart="return false"> 
     {#if time === 0}
         <RoundIndicator roundValue = {currentQuestionNumber + 1} msg = {"Question"}/>
     {/if}
     <TriviaIcon/>
-    <div class = "answerScreenContainer" in:fly ="{{ y: -20, duration: 1000 }}" style = "opacity : {opacityOfContainer}">
-        {#if questionTimer != undefined}
-            <div class="questionTimer" style = "background : {borderColor}">
-                {#if questionTimer > 9}
-                    0:{questionTimer}
-                {:else if questionTimer > 0}
-                    0:0{questionTimer}
-                {:else if questionTimer === 0}
-                    {#if answerOptionId === lockedOptionId}
-                        Correct!
-                    {:else if lockedOptionId != undefined}
-                        Wrong!
-                    {:else}
-                        Times Up!
-                    {/if}
-                {/if}
-            </div>
-        {:else }
-            <div class="questionTimer" style = "background : {borderColor}">
-                0:30
-            </div>
-        {/if}
-
-        <div class="svgContainer">
-            <svg class = "svg" width = "100%" height = "100%">
-                <rect x="0" y="0" width="100%" height="100%"  fill = "{borderColor}" stroke-dashoffset = "{strokeDashOffset + '%'}" stroke-dasharray = "{stroke + '%'} , {stroke1 + '%'}"/>
-            </svg>
-        </div>
-        <div class = "answerScreenParent" onmousedown="return false" onselectstart="return false">
-            <div class="answerScreen">
-                <div class="question" onmousedown="return false" onselectstart="return false">
-
-                    {#if currentQuestionText}
-                        {currentQuestionText}
-                    {/if}
-                </div>
-                <div class = "allOptions">
-                    {#each options as option}
-                        {#if questionTimer === 0 }
-                            {#if option.optionId === answerOptionId}
-                                <div class="correctOption">
-                                    {option.optionText}
-                                </div>
-                            {:else if option.optionId === lockedOptionId}
-                                <div class="wrongOption" >
-                                    {option.optionText}
-                                </div>
+    <div class="parentContainer">
+        <div class="otherPlayerStatus">
+            <div class="playerContainer">
+                {#each usersStatus as player}
+                    <div class="player" title = {player.locked?`${player.userName} has locked his answer`:`${player.userName} hasn't locked his answer`}>
+                        <div class="playerDetails">
+                            {#if validUserProfilePicture(player.profilePicture)}
+                                <img class = "profilePicture" src = {player.profilePicture} alt = "UserProfilePicture">
                             {:else}
-                                <div class="simpleOption">
-                                    {option.optionText}
-                                </div>
+                                <div class="fakeProfilePicture"> {player.userName[0].toUpperCase()} </div>
                             {/if}
-                        {:else}
-                            <div class="option" class:hoverOption = {lockedOptionId == null && selectedOptionId != option.optionId} class:selectedOption = {option.optionId === selectedOptionId} style = "cursor : {lockedOptionId == null?"pointer":""}" on:click = {()=>handleOptionClick(option)}>
-                                {option.optionText}
+                            <div class="playerName">   
+                                {processName(player)} 
                             </div>
-                        {/if}
-                    {/each}
-                </div>
-                <div class="lockInBtn">
-                    {#if questionTimer}
-                        {#if lockedOptionId == null}
-                            <CustomButton on:click = {handleLockInBtn} btnText = 'Lock In' disableBtn = {selectedOptionId == null} tooltipMsg = {(selectedOptionId == null)?'Select a option':'Are you sure to lock selected option?' }/>
-                        {:else}
-                            <div class="waiting">
-                                Waiting for others...
-                            </div>
-                        {/if}
-                    {:else if questionTimer === 0 && nextQuestionWaitingTimer}
-                        <div class="waiting">
-                            {#if currentQuestionNumber === 4 || currentQuestionNumber === 9}
-                                Leaderboard in... {nextQuestionWaitingTimer}
+                        </div>
+                        <div class="answerStatus">
+                            {#if player.locked}
+                                <Locked/>
                             {:else}
-                                Next question in... {nextQuestionWaitingTimer} 
+                                <Unlocked/>
                             {/if}
                         </div>
-                    {/if}
-                </div>
-                <div class = "allAnswers">
-                    {#each answerStatus as status}
-                        {#if status !== 3}
-                            <div title = {titleMap[status]}>
-                                <svg height="1rem" width="1rem">
-                                    <circle cx="0.5rem" cy="0.5rem" r="0.5rem" fill = {colorMap[status]}/>
-                                </svg> 
-                            </div>
-                        {:else}
-                            <div class = "currentQuestionContainer" title = {titleMap[status]}>
-                                <svg height="2rem" width="2rem">
-                                    <circle cx="1rem" cy="1rem" r="1rem" fill = {"#6C44A8"}/>
-                                </svg> 
-                                <div class = "currentQuestion">
-                                        {currentQuestionNumber + 1}
-                                </div>
-                            </div>
+                    </div>
+                {/each}
+            </div>
+        </div>
+        <div class = "answerScreenContainer" in:fly ="{{ y: -20, duration: 1000 }}" style = "opacity : {opacityOfContainer}">
+            <div class="questionTimerContainer">
+                {#if questionTimer != undefined}
+                    <div class="questionTimer" style = "background : {borderColor}" class:timesUp = {questionTimer === 0 && lockedOptionId == null}>
+                        {#if questionTimer > 9}
+                            0:{questionTimer}
+                        {:else if questionTimer > 0}
+                            0:0{questionTimer}
+                        {:else if questionTimer === 0}
+                            {#if answerOptionId === lockedOptionId}
+                                Correct!
+                            {:else if lockedOptionId != undefined}
+                                Wrong!
+                            {:else}
+                                Times Up!
+                            {/if}
                         {/if}
-                    {/each}
+                    </div>
+                {:else }
+                    <div class="questionTimer" style = "background : {borderColor}">
+                        0:30
+                    </div>
+                {/if}
+            </div>
+            <div class="svgContainer">
+                <svg class = "svg" width = "100%" height = "100%">
+                    <rect x="0" y="0" width="100%" height="100%" bind:this={svgId} fill = "{borderColor}" stroke-dashoffset = "{strokeDashOffset + '%'}" stroke-dasharray = "{stroke} , {stroke1}"/>
+                </svg>
+            </div>
+            <div class = "answerScreenParent" onmousedown="return false" onselectstart="return false">
+                <div class="answerScreen">
+                    <div class="question" onmousedown="return false" onselectstart="return false">
+
+                        {#if currentQuestionText}
+                            {currentQuestionText}
+                        {/if}
+                    </div>
+                    <div class = "allOptions">
+                        {#each options as option}
+                            {#if questionTimer === 0 }
+                                {#if option.optionId === answerOptionId}
+                                    <div class="correctOption">
+                                        {option.optionText}
+                                    </div>
+                                {:else if option.optionId === lockedOptionId}
+                                    <div class="wrongOption" >
+                                        {option.optionText}
+                                    </div>
+                                {:else}
+                                    <div class="simpleOption">
+                                        {option.optionText}
+                                    </div>
+                                {/if}
+                            {:else}
+                                <div class="option" class:hoverOption = {lockedOptionId == null && selectedOptionId != option.optionId} class:selectedOption = {option.optionId === selectedOptionId} style = "cursor : {lockedOptionId == null?"pointer":""}" on:click = {()=>handleOptionClick(option)}>
+                                    {option.optionText}
+                                </div>
+                            {/if}
+                        {/each}
+                    </div>
+                    <div>
+                        <div class="lockInBtn">
+                            {#if questionTimer}
+                                {#if lockedOptionId == null}
+                                    <CustomButton on:click = {handleLockInBtn} btnText = 'Lock In' disableBtn = {selectedOptionId == null} tooltipMsg = {(selectedOptionId == null)?'Select a option':'Are you sure to lock selected option?' }/>
+                                {:else}
+                                    <div class="waiting">
+                                        Waiting for others...
+                                    </div>
+                                {/if}
+                            {:else if questionTimer === 0 && nextQuestionWaitingTimer}
+                                <div class="waiting">
+                                    {#if currentQuestionNumber === 4 || currentQuestionNumber === 9}
+                                        Leaderboard in... {nextQuestionWaitingTimer}
+                                    {:else}
+                                        Next question in... {nextQuestionWaitingTimer} 
+                                    {/if}
+                                </div>
+                            {/if}
+                        </div>
+                        <div class = "allAnswers">
+                            {#each answerStatus as status}
+                                {#if status !== 3}
+                                    <div title = {titleMap[status]}>
+                                        <svg height="1rem" width="1rem">
+                                            <circle cx="0.5rem" cy="0.5rem" r="0.5rem" fill = {colorMap[status]}/>
+                                        </svg> 
+                                    </div>
+                                {:else}
+                                    <div class = "currentQuestionContainer" title = {titleMap[status]}>
+                                        <svg height="2rem" width="2rem">
+                                            <circle cx="1rem" cy="1rem" r="1rem" fill = {"#6C44A8"}/>
+                                        </svg> 
+                                        <div class = "currentQuestion">
+                                                {currentQuestionNumber + 1}
+                                        </div>
+                                    </div>
+                                {/if}
+                            {/each}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -397,13 +473,86 @@
         align-items: center;
         height : 100%;
         overflow-y: auto;
+        overflow-x : hidden;
+    }
+    .parentContainer {
+        display: flex;
+        width : 100%;
+        margin : auto;
+    }
+    .otherPlayerStatus {
+        position : relative;
+        flex-grow : 100;
+        padding : 0.5rem;
+        overflow-x : hidden;
+        background : #fff;
+        border-radius : 1rem;
+        margin-left : 1rem;
+    }
+    .playerContainer {
+        position : absolute;
+        padding : 0.5rem;
+        display : flex;
+        flex-direction: column;
+        gap : 1rem;
+        align-items: center;
+        width : calc(100% - 1rem);
+        height : calc(100% - 1rem);
+        overflow-y : auto;
+    }
+    .player {
+        display : flex;
+        justify-content: space-between;
+        align-items: center;
+        width : 100%;
+    }
+    .playerDetails {
+        display : flex;
+        gap : 5px;
+        max-width: 50%;
+        justify-content: flex-start;
+        align-items: center;
+    }
+    .profilePicture {
+        width : 20px;
+        height : 20px;
+        border-radius : 50%;
+    }
+    .fakeProfilePicture {
+        min-width : 20px;
+        min-height : 20px;
+        max-width : 20px;
+        max-height : 20px;
+        font-size : 12px;
+        color : white;
+        font-weight : 700;
+        display : flex;
+        font-family : 'Manrope';
+        font-weight : 700;
+        font-size : 0.75rem;
+        justify-content: center;
+        align-items : center;
+        border-radius : 50%;
+        background-color : #343E98;
+        margin-right: 5px;
+    }
+    .playerName {
+        font-family:  'Manrope';
+        font-weight : 700;
+        font-size : 0.75rem;
+        color: #333;
+        white-space : nowrap;
+    }
+    .answerStatus {
+        width : 20px;
+        height : 20px;
+        border-radius: 50%;
     }
     .answerScreenContainer {
         margin : auto 0;
         padding : 0rem 1rem;
-        width : 60vw;
-        min-height : 55vh;
         position : relative;
+        width : 60vw;
     }
     @media screen and (max-width : 1200px) {
         .answerScreenContainer {
@@ -420,19 +569,9 @@
             width : 90vw;
         }
     }
-    @media screen and (max-height : 600px) {
-        .answerScreenContainer {
-            min-height : 70vh;
-        }
-    }
-    @media screen and (max-height : 400px) {
-        .answerScreenContainer {
-            min-height : 75vh;
-        }
-    }
     .svgContainer {
-        position: relative;
-        width: 100%;
+        position: absolute;
+        width: calc(100% - 2rem);
         height: 100%;
         border-radius: 1rem;
         overflow: hidden;
@@ -442,35 +581,45 @@
 		stroke: #ccc;
 	}
     .answerScreenParent {
-        position : absolute;
-        width : calc(100% - 3rem);
-        height : calc(100% - 1rem);
-        top : 50%;
-        left : 50%;
-        transform : translate(-50%,-50%);
-        background-color: #fff;
-        padding : 0.2rem;
+        position : relative;
+        padding : 0.5rem;
         border-radius: 1rem;
         display : flex;
         flex-direction : column;
         align-items: center;
         overflow :visible;
+        width : 100%;
     }
     .answerScreen {
-        width : 100%;
-        height : 100%;
+        display : flex;
+        flex-direction:  column;
         padding: 0.8rem;
         overflow-y : auto;
         overflow-x : visible;
-        display : flex;
-        flex-direction:  column;
+        gap : 2rem;
+        background : #fff;
+        border-radius : 1rem;
+        width : 100%;
     }
+    
+    @media screen and (max-width : 600px) {
+        .answerScreen {
+            gap : 1.5rem;
+        }
+    }
+
+    @media screen and (max-width : 500px) {
+        .answerScreen {
+            gap : 1rem;
+        }
+    }
+
     .question {
         font-family : 'Manrope';
         font-size : 1rem;
         font-weight : 800;
         max-width : 80%;
-        margin : 1rem auto;
+        margin : 0rem auto;
         text-align : center;
         line-height : 1.25rem;
         color : #333;
@@ -480,7 +629,7 @@
         grid-template-columns: repeat(2,1fr);
         gap : 1rem;
         width : 100%;
-        margin : 1rem auto;
+        margin : 0rem auto;
     }
     .option,.selectedOption,.correctOption,.wrongOption,.simpleOption {
         border : 2px solid #D9D9D9;
@@ -527,18 +676,39 @@
             transform: scale(1);
         }
     }
+    .questionTimerContainer {
+        position : absolute;
+        display : flex;
+        width : 100%;
+        justify-content: center;
+        align-items: center;
+        height: 1.5rem;
+        top : -0.5rem
+    }
     .questionTimer {
         padding : 0.25rem 0.5rem;
         font-family: 'Manrope';
         font-size : 0.75rem;
         font-weight : 700;
         color : #fff;
-        position : absolute;
-        bottom : calc(100% - 0.75rem);
-        left : 50%;
-        transform: translateX(-50%);
         border-radius : 0.25rem;
         z-index : 100;
+    }
+    .timesUp {
+        animation  : animateTimesUp 2s 1; 
+        background : #4f4f4f;
+        padding : 0.25rem 0.5rem;
+    }
+    @keyframes animateTimesUp {
+        33% {
+            transform : rotate(10deg);
+        }
+        66% {
+            transform: rotate(-10deg);
+        }
+        99% {
+            transform: rotate(0deg);
+        }
     }
     .allAnswers {
         display : flex;
@@ -564,7 +734,10 @@
     .lockInBtn {
         display : flex;
         justify-content: center;
-        margin : auto;
+        margin : 0rem auto;
+        height : 2rem;
+        align-items: center;
+        margin-bottom: 0.15rem;
     }
     .waiting {
         color : #6C44A8;
