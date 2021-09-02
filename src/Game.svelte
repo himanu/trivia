@@ -35,7 +35,7 @@
     let initialTime = 31;
     let timeVal,timeVal1;
     let usersStatus = [];
-
+    let correctOption;
     onMount(()=>{
         maxValueOfStroke = 2*(svgId.offsetWidth + svgId.offsetHeight);
         strokeDashOffset = (svgId.offsetWidth/2);
@@ -91,6 +91,7 @@
             usersStatus = [];
             let currentQuestionUsersAnswers = allQuestions[currentQuestionNumber]['usersAnswers'];
             let currentQuestionCorrectOption = allQuestions[currentQuestionNumber]['correctOption'];
+            correctOption = currentQuestionCorrectOption;
             for(const id in users) {
                 if(users[id].isOnline === true) {
                     noOfOnlinePlayers += 1;
@@ -340,159 +341,163 @@
     }
 </script>
 <div class = "gameContainer" onmousedown="return false" onselectstart="return false"> 
-    {#if time === 0}
+    <!-- {#if time === 0}
         <RoundIndicator roundValue = {currentQuestionNumber + 1} msg = {"Question"}/>
-    {/if}
+    {/if} -->
     <TriviaIcon/>
     <div class="playersStatus" on:click = {handleShowPlayerStatus} >
         {playerStatusText}
     </div>
-    <div class="parentContainer">
-        <div class="otherPlayerStatus" class:showPlayersStatus = {showPlayersStatus}>
-            <div class="playerStatusHeading">
-                Players Status
-            </div>
-            <div style = "position : relative; flex-grow : 100 ; overflow-y : auto">
-                <div class="playerContainer" in:fly ="{{ y: -20, duration: 1000 }}">
-                    {#each usersStatus as player}
-                        <div class="player" class:lockedPlayer = {player.locked} title = {player.locked?`${player.userName} has locked his answer`:`${player.userName} hasn't locked his answer`}>
-                            <div class="playerDetails">
-                                {#if validUserProfilePicture(player.profilePicture)}
-                                    <img class = "profilePicture" src = {player.profilePicture} alt = "UserProfilePicture">
-                                {:else}
-                                    <div class="fakeProfilePicture"> {player.userName[0].toUpperCase()} </div>
-                                {/if}
-                                <div class="playerName">   
-                                    {processName(player)} 
-                                </div>
-                            </div>
-                            <div class="answerStatus">
-                                {#if questionTimer && player.locked}
-                                    <Locked/>
-                                {:else if questionTimer}
-                                    <Unlocked/>
-                                {:else if questionTimer === 0}
-                                    {#if player['answerStatus'] === 'correct'}
-                                        <CorrectAnswer/>
-                                    {:else if player['answerStatus'] === 'wrong'}
-                                        <WrongAnswer/>
-                                    {:else}
-                                        <NoAnswer/>
-                                    {/if}
-                                {/if}
-                            </div>
-                        </div>
-                    {/each}
-                
-                
-                </div>
-            </div>
-        </div>
-        <div class = "answerScreenContainer" class:reduceOpacityOfAnswerScreenContainer = {showPlayersStatus} in:fly ="{{ y: -20, duration: 1000 }}">
-            <div class="questionTimerContainer">
-                {#if questionTimer != undefined}
-                    <div class="questionTimer" style = "background : {borderColor}" class:timesUp = {questionTimer === 0 && lockedOptionId == null}>
-                        {#if questionTimer > 9}
-                            0:{questionTimer}
-                        {:else if questionTimer > 0}
-                            0:0{questionTimer}
-                        {:else if questionTimer === 0}
-                            {#if answerOptionId === lockedOptionId}
-                                Correct!
-                            {:else if lockedOptionId != undefined}
-                                Wrong!
-                            {:else}
-                                Times Up!
-                            {/if}
-                        {/if}
+    {#key currentQuestionNumber }
+        <div class="parentContainer" in:fly ="{{ y: -20, duration: 1000 }}">
+            {#key questionTimer === 0}
+                <div class="otherPlayerStatus" class:showPlayersStatus = {showPlayersStatus} in:fly ="{{ y: -20, duration: 1000 }}">
+                    <div class="playerStatusHeading">
+                        Players Status
                     </div>
-                {:else }
-                    <div class="questionTimer" style = "background : {borderColor}">
-                        0:30
-                    </div>
-                {/if}
-            </div>
-            <div class="svgContainer" bind:this={svgId}>
-                <svg class = "svg" width = "100%" height = "100%">
-                    <rect x="0" y="0" width="100%" height="100%" fill = "{borderColor}" stroke-dashoffset = "{-1*strokeDashOffset}" stroke-dasharray = "{stroke} , {stroke1}"/>
-                </svg>
-            </div>
-            <div class = "answerScreenParent" onmousedown="return false" onselectstart="return false">
-                <div class="answerScreen">
-                    <div class="question" onmousedown="return false" onselectstart="return false">
-
-                        {#if currentQuestionText}
-                            {currentQuestionText}
-                        {/if}
-                    </div>
-                    <div class = "allOptions">
-                        {#each options as option}
-                            {#if questionTimer === 0 }
-                                {#if option.optionId === answerOptionId}
-                                    <div class="correctOption">
-                                        {option.optionText}
-                                    </div>
-                                {:else if option.optionId === lockedOptionId}
-                                    <div class="wrongOption" >
-                                        {option.optionText}
-                                    </div>
-                                {:else}
-                                    <div class="simpleOption">
-                                        {option.optionText}
-                                    </div>
-                                {/if}
-                            {:else}
-                                <div class="option" class:hoverOption = {lockedOptionId == null && selectedOptionId != option.optionId} class:selectedOption = {option.optionId === selectedOptionId} style = "cursor : {lockedOptionId == null?"pointer":""}" on:click = {()=>handleOptionClick(option)}>
-                                    {option.optionText}
-                                </div>
-                            {/if}
-                        {/each}
-                    </div>
-                    <div>
-                        <div class="lockInBtn">
-                            {#if questionTimer}
-                                {#if lockedOptionId == null}
-                                    <CustomButton on:click = {handleLockInBtn} btnText = 'Lock In' disableBtn = {selectedOptionId == null} tooltipMsg = {(selectedOptionId == null)?'Select a option':'Are you sure to lock selected option?' }/>
-                                {:else}
-                                    <div class="waiting">
-                                        Waiting for others...
-                                    </div>
-                                {/if}
-                            {:else if questionTimer === 0 && nextQuestionWaitingTimer}
-                                <div class="waiting">
-                                    {#if currentQuestionNumber === 4 || currentQuestionNumber === 9}
-                                        Leaderboard in... {nextQuestionWaitingTimer}
-                                    {:else}
-                                        Next question in... {nextQuestionWaitingTimer} 
-                                    {/if}
-                                </div>
-                            {/if}
-                        </div>
-                        <div class = "allAnswers">
-                            {#each answerStatus as status}
-                                {#if status !== 3}
-                                    <div title = {titleMap[status]}>
-                                        <svg height="1rem" width="1rem">
-                                            <circle cx="0.5rem" cy="0.5rem" r="0.5rem" fill = {colorMap[status]}/>
-                                        </svg> 
-                                    </div>
-                                {:else}
-                                    <div class = "currentQuestionContainer" title = {titleMap[status]}>
-                                        <svg height="2rem" width="2rem">
-                                            <circle cx="1rem" cy="1rem" r="1rem" fill = {"#6C44A8"}/>
-                                        </svg> 
-                                        <div class = "currentQuestion">
-                                                {currentQuestionNumber + 1}
+                    <div style = "position : relative; flex-grow : 100 ; overflow-y : auto">
+                        <div class="playerContainer">
+                            {#each usersStatus as player}
+                                <div class="player" class:lockedPlayer = {player.locked} class:correctAnswered = {questionTimer === 0 && player['answerStatus'] === 'correct'} class:wrongAnswered = {questionTimer === 0 && player['answerStatus'] === 'wrong'} class:noAnswered = {questionTimer === 0 && player['answerStatus'] == null} title = {player.locked?`${player.userName} has locked his answer`:`${player.userName} hasn't locked his answer`}>
+                                    <div class="playerDetails">
+                                        {#if validUserProfilePicture(player.profilePicture)}
+                                            <img class = "profilePicture" src = {player.profilePicture} alt = "UserProfilePicture">
+                                        {:else}
+                                            <div class="fakeProfilePicture"> {player.userName[0].toUpperCase()} </div>
+                                        {/if}
+                                        <div class="playerName">   
+                                            {processName(player)} 
                                         </div>
+                                    </div>
+                                    <div class="answerStatus">
+                                        {#if questionTimer && player.locked}
+                                            <Locked/>
+                                        {:else if questionTimer}
+                                            <Unlocked/>
+                                        {:else if questionTimer === 0}
+                                            {#if player['answerStatus'] === 'correct'}
+                                                <CorrectAnswer/>
+                                            {:else if player['answerStatus'] === 'wrong'}
+                                                <WrongAnswer/>
+                                            {:else}
+                                                <NoAnswer/>
+                                            {/if}
+                                        {/if}
+                                    </div>
+                                </div>
+                            {/each}
+                        
+                        
+                        </div>
+                    </div>
+                </div>
+            {/key}
+            <div class = "answerScreenContainer" class:reduceOpacityOfAnswerScreenContainer = {showPlayersStatus}>
+                <div class="questionTimerContainer">
+                    {#if questionTimer != undefined}
+                        <div class="questionTimer" style = "background : {borderColor}" class:timesUp = {questionTimer === 0 && lockedOptionId == null}>
+                            {#if questionTimer > 9}
+                                0:{questionTimer}
+                            {:else if questionTimer > 0}
+                                0:0{questionTimer}
+                            {:else if questionTimer === 0}
+                                {#if answerOptionId === lockedOptionId}
+                                    Correct!
+                                {:else if lockedOptionId != undefined}
+                                    Wrong!
+                                {:else}
+                                    Times Up!
+                                {/if}
+                            {/if}
+                        </div>
+                    {:else }
+                        <div class="questionTimer" style = "background : {borderColor}">
+                            0:30
+                        </div>
+                    {/if}
+                </div>
+                <div class="svgContainer" bind:this={svgId}>
+                    <svg class = "svg" width = "100%" height = "100%">
+                        <rect x="0" y="0" width="100%" height="100%" fill = "{borderColor}" stroke-dashoffset = "{-1*strokeDashOffset}" stroke-dasharray = "{stroke} , {stroke1}"/>
+                    </svg>
+                </div>
+                <div class = "answerScreenParent" onmousedown="return false" onselectstart="return false">
+                    <div class="answerScreen">
+                        <div class="question" onmousedown="return false" onselectstart="return false">
+
+                            {#if currentQuestionText}
+                                {currentQuestionText}
+                            {/if}
+                        </div>
+                        <div class = "allOptions">
+                            {#each options as option}
+                                {#if questionTimer === 0 }
+                                    {#if option.optionId === answerOptionId}
+                                        <div class="correctOption">
+                                            {option.optionText}
+                                        </div>
+                                    {:else if option.optionId === lockedOptionId}
+                                        <div class="wrongOption" >
+                                            {option.optionText}
+                                        </div>
+                                    {:else}
+                                        <div class="simpleOption">
+                                            {option.optionText}
+                                        </div>
+                                    {/if}
+                                {:else}
+                                    <div class="option" class:hoverOption = {lockedOptionId == null && selectedOptionId != option.optionId} class:selectedOption = {option.optionId === selectedOptionId} style = "cursor : {lockedOptionId == null?"pointer":""}" on:click = {()=>handleOptionClick(option)}>
+                                        {option.optionText}
                                     </div>
                                 {/if}
                             {/each}
                         </div>
+                        <div>
+                            <div class="lockInBtn">
+                                {#if questionTimer}
+                                    {#if lockedOptionId == null}
+                                        <CustomButton on:click = {handleLockInBtn} btnText = 'Lock In' disableBtn = {selectedOptionId == null} tooltipMsg = {(selectedOptionId == null)?'Select a option':'Are you sure to lock selected option?' }/>
+                                    {:else}
+                                        <div class="waiting">
+                                            Waiting for others...
+                                        </div>
+                                    {/if}
+                                {:else if questionTimer === 0 && nextQuestionWaitingTimer}
+                                    <div class="waiting">
+                                        {#if currentQuestionNumber === 4 || currentQuestionNumber === 9}
+                                            Leaderboard in... {nextQuestionWaitingTimer}
+                                        {:else}
+                                            Next question in... {nextQuestionWaitingTimer} 
+                                        {/if}
+                                    </div>
+                                {/if}
+                            </div>
+                            <div class = "allAnswers">
+                                {#each answerStatus as status}
+                                    {#if status !== 3}
+                                        <div title = {titleMap[status]}>
+                                            <svg height="1rem" width="1rem">
+                                                <circle cx="0.5rem" cy="0.5rem" r="0.5rem" fill = {colorMap[status]}/>
+                                            </svg> 
+                                        </div>
+                                    {:else}
+                                        <div class = "currentQuestionContainer" title = {titleMap[status]}>
+                                            <svg height="2rem" width="2rem">
+                                                <circle cx="1rem" cy="1rem" r="1rem" fill = {"#6C44A8"}/>
+                                            </svg> 
+                                            <div class = "currentQuestion">
+                                                    {currentQuestionNumber + 1}
+                                            </div>
+                                        </div>
+                                    {/if}
+                                {/each}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    {/key}
 </div>
 <style>
     ::-webkit-scrollbar {
@@ -593,6 +598,21 @@
         color : #333;
         border : 2px solid #6C44A8
     }
+    .correctAnswered {
+        background-color: #fff;
+        color : #333;
+        border : 2px solid #27AE60;
+    }
+    .wrongAnswered {
+        background-color: #fff;
+        color : #333;
+        border : 2px solid #C81919;
+    }
+    .noAnswered {
+        background-color: #fff;
+        color : #333;
+        border : 2px solid #4f4f4f
+    }
     .playerDetails {
         display : flex;
         gap : 5px;
@@ -629,11 +649,7 @@
         font-size : 0.75rem;
         white-space : nowrap;
     }
-    .answerStatus {
-        width : 20px;
-        height : 20px;
-        border-radius: 50%;
-    }
+    
     .answerScreenContainer {
         margin : auto 12.5vw auto 0;
         padding : 0rem 1rem;
@@ -677,15 +693,14 @@
         .otherPlayerStatus {
             position : absolute;
             z-index : 1;
-            top : calc(100% + 4rem);
+            bottom : calc(-50vh);
             margin-left : 0;
-            transition : top 2s linear;
+            transition : bottom 0.5s linear;
             min-width : 55vw;
             min-height : 40vh;
         }
         .showPlayersStatus {
-            top : 50%;
-            transform : translateY(-50%);
+            bottom : 2.5rem;
         }
         .answerScreenContainer {
             width : 70vw;
