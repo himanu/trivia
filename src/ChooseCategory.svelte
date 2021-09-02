@@ -203,7 +203,7 @@
         min-width : 60vw;
         padding : 0rem 0.5rem;
     }
-    @media screen and (max-height : 500px) {
+    @media screen and (max-width : 600px) {
         .categoriesList {
             grid-template-columns: repeat(1,1fr);
         }
