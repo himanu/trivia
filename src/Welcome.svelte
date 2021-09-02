@@ -70,11 +70,11 @@
     function processName(currUser) {
         let name = currUser.userName;
         let fname = name?.split(" ")[0];
-        if(fname?.length > 10)
+        if(fname?.length > 7)
         {
             fname = fname[0].toUpperCase();
             if(name?.split(" ")[1]) {
-                fname += name?.split(" ")[1][0].toLowerCase();
+                fname += name?.split(" ")[1][0].toUpperCase();
             }
         }
         if(currUser.id === hostId) {

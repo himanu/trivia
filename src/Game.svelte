@@ -8,7 +8,10 @@
     import CustomButton from './CustomButton.svelte';
     import {onMount} from 'svelte';
     import Locked from './icons/Locked.svelte';
-    import Unlocked from './icons/Unlocked.svelte'
+    import Unlocked from './icons/Unlocked.svelte';
+    import CorrectAnswer from './icons/CorrectAnswer.svelte';
+    import WrongAnswer from './icons/WrongAnswer.svelte';
+    import NoAnswer from './icons/NoAnswer.svelte';
 
     let currentQuestionNumber;
     let allQuestions;
@@ -25,15 +28,19 @@
     let nextQuestionWaitingTimer;
     let svgId;
     let setIntervalInterval;
-    let stroke = 0;
-    let maxValueOfStroke = 384;
-    let strokeDashOffset = -64.8;
-    let stroke1 = maxValueOfStroke  - stroke;
+    let stroke;
+    let maxValueOfStroke;
+    let strokeDashOffset;
+    let stroke1;
     let initialTime = 31;
     let timeVal,timeVal1;
     let usersStatus = [];
+
     onMount(()=>{
-        maxValueOfStroke = svgId.getTotalLength();
+        maxValueOfStroke = 2*(svgId.offsetWidth + svgId.offsetHeight);
+        strokeDashOffset = (svgId.offsetWidth/2);
+        stroke1 = maxValueOfStroke;
+        stroke = 0;
     })
 
     listenFirebaseKey(dbNextQuestionWaitingTimer,(dbNextQuestionWaitingTimerRef)=>{
@@ -83,6 +90,7 @@
             noOfOnlinePlayers = 0;
             usersStatus = [];
             let currentQuestionUsersAnswers = allQuestions[currentQuestionNumber]['usersAnswers'];
+            let currentQuestionCorrectOption = allQuestions[currentQuestionNumber]['correctOption'];
             for(const id in users) {
                 if(users[id].isOnline === true) {
                     noOfOnlinePlayers += 1;
@@ -93,6 +101,12 @@
                     }
                     if(currentQuestionUsersAnswers && !(currentQuestionUsersAnswers[id] == null)) {
                         obj['locked'] = true;
+                        if(currentQuestionUsersAnswers[id] === currentQuestionCorrectOption) {
+                            obj['answerStatus'] = 'correct';
+                        }
+                        else {
+                            obj['answerStatus'] = 'wrong';
+                        }
                     }
                     else {
                         obj['locked'] = false;
@@ -180,7 +194,8 @@
             timeVal = timeVal - elapsed/1000;
             prev = curr;
         }
-        maxValueOfStroke = svgId.getTotalLength();
+        maxValueOfStroke = 2*(svgId.offsetWidth + svgId.offsetHeight);
+        strokeDashOffset = 1*(svgId.offsetWidth/2);
         if(timeVal <= 0) {
             cancelAnimationFrame(requestAnimationFrameId)
             prev = null;
@@ -299,17 +314,29 @@
     function processName(user){
         let name = user.userName;
         let fname = name?.split(" ")[0];
-        if(fname?.length > 10)
+        if(fname?.length > 7)
         {
-            fname = name?.split(" ")[0].toUpperCase();
-            if(name?.split(" ")[1].toUpperCase()) {
-                fname += name?.split(" ")[1].toUpperCase();
+            fname = name?.split(" ")[0][0].toUpperCase();
+            if(name?.split(" ")[1][0].toUpperCase()) {
+                fname += name?.split(" ")[1][0].toUpperCase();
             }
         }
         if(user.id === userId) {
-            fname = fname + " (You)";
+            fname = fname + "(You)";
         }
         return fname;
+    }
+    let showPlayersStatus = false;
+    let playerStatusText = "Players Status";
+    function handleShowPlayerStatus() {
+        if(showPlayersStatus === false) {
+            showPlayersStatus = true;
+            playerStatusText = 'Hide';
+        }
+        else if(showPlayersStatus === true) {
+            showPlayersStatus = false;
+            playerStatusText = 'Players Status';
+        }
     }
 </script>
 <div class = "gameContainer" onmousedown="return false" onselectstart="return false"> 
@@ -317,36 +344,51 @@
         <RoundIndicator roundValue = {currentQuestionNumber + 1} msg = {"Question"}/>
     {/if}
     <TriviaIcon/>
+    <div class="playersStatus" on:click = {handleShowPlayerStatus} >
+        {playerStatusText}
+    </div>
     <div class="parentContainer">
-        <div class="otherPlayerStatus">
+        <div class="otherPlayerStatus" class:showPlayersStatus = {showPlayersStatus}>
             <div class="playerStatusHeading">
                 Players Status
             </div>
-            <div class="playerContainer">
-                {#each usersStatus as player}
-                    <div class="player" class:lockedPlayer = {player.locked} title = {player.locked?`${player.userName} has locked his answer`:`${player.userName} hasn't locked his answer`}>
-                        <div class="playerDetails">
-                            {#if validUserProfilePicture(player.profilePicture)}
-                                <img class = "profilePicture" src = {player.profilePicture} alt = "UserProfilePicture">
-                            {:else}
-                                <div class="fakeProfilePicture"> {player.userName[0].toUpperCase()} </div>
-                            {/if}
-                            <div class="playerName">   
-                                {processName(player)} 
+            <div style = "position : relative; flex-grow : 100 ; overflow-y : auto">
+                <div class="playerContainer" in:fly ="{{ y: -20, duration: 1000 }}">
+                    {#each usersStatus as player}
+                        <div class="player" class:lockedPlayer = {player.locked} title = {player.locked?`${player.userName} has locked his answer`:`${player.userName} hasn't locked his answer`}>
+                            <div class="playerDetails">
+                                {#if validUserProfilePicture(player.profilePicture)}
+                                    <img class = "profilePicture" src = {player.profilePicture} alt = "UserProfilePicture">
+                                {:else}
+                                    <div class="fakeProfilePicture"> {player.userName[0].toUpperCase()} </div>
+                                {/if}
+                                <div class="playerName">   
+                                    {processName(player)} 
+                                </div>
+                            </div>
+                            <div class="answerStatus">
+                                {#if questionTimer && player.locked}
+                                    <Locked/>
+                                {:else if questionTimer}
+                                    <Unlocked/>
+                                {:else if questionTimer === 0}
+                                    {#if player['answerStatus'] === 'correct'}
+                                        <CorrectAnswer/>
+                                    {:else if player['answerStatus'] === 'wrong'}
+                                        <WrongAnswer/>
+                                    {:else}
+                                        <NoAnswer/>
+                                    {/if}
+                                {/if}
                             </div>
                         </div>
-                        <div class="answerStatus">
-                            {#if player.locked}
-                                <Locked/>
-                            {:else}
-                                <Unlocked/>
-                            {/if}
-                        </div>
-                    </div>
-                {/each}
+                    {/each}
+                
+                
+                </div>
             </div>
         </div>
-        <div class = "answerScreenContainer" in:fly ="{{ y: -20, duration: 1000 }}" style = "opacity : {opacityOfContainer}">
+        <div class = "answerScreenContainer" class:reduceOpacityOfAnswerScreenContainer = {showPlayersStatus} in:fly ="{{ y: -20, duration: 1000 }}">
             <div class="questionTimerContainer">
                 {#if questionTimer != undefined}
                     <div class="questionTimer" style = "background : {borderColor}" class:timesUp = {questionTimer === 0 && lockedOptionId == null}>
@@ -370,9 +412,9 @@
                     </div>
                 {/if}
             </div>
-            <div class="svgContainer">
+            <div class="svgContainer" bind:this={svgId}>
                 <svg class = "svg" width = "100%" height = "100%">
-                    <rect x="0" y="0" width="100%" height="100%" bind:this={svgId} fill = "{borderColor}" stroke-dashoffset = "{strokeDashOffset + '%'}" stroke-dasharray = "{stroke} , {stroke1}"/>
+                    <rect x="0" y="0" width="100%" height="100%" fill = "{borderColor}" stroke-dashoffset = "{-1*strokeDashOffset}" stroke-dasharray = "{stroke} , {stroke1}"/>
                 </svg>
             </div>
             <div class = "answerScreenParent" onmousedown="return false" onselectstart="return false">
@@ -482,29 +524,51 @@
         display: flex;
         width : 100%;
         margin : auto;
+        justify-content: center;
     }
     .otherPlayerStatus {
         display : flex;
-        flex-direction: column;
-        gap : 0.5rem;
+        justify-content: center;
         position : relative;
         flex-grow : 100;
         padding : 0.5rem;
-        overflow-x : hidden;
         background : #fff;
         border-radius : 1rem;
-        margin-left : 1rem;
-        border : 0.5rem solid #6C44A8
+        margin-left : calc(12.5vw + 1rem);
+        border : 0.5rem solid #6C44A8;
+    }
+    .playerStatusHeading, .playersStatus {
+        position : absolute;
+        font-family: 'Manrope';
+        font-size : 0.75rem;
+        font-weight: 700;
+        background-color : #6C44A8;
+        color : #fff;
+        padding : 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        white-space: nowrap;
     }
     .playerStatusHeading {
-        font-family: 'Manrope';
-        font-size : 1rem;
-        font-weight: 800;
-        color : #6C44A8;
-        padding : 0.5rem;
+        top : -0.85rem;
+    }
+    .playersStatus {
+        display : none;
+        visibility: hidden;
+        bottom : 0;
+    }
+    @media screen and (max-width : 600px) {
+        .playersStatus {
+            display :block;
+            visibility: visible;
+            cursor : pointer;
+            z-index : 2;
+        }
+        .reduceOpacityOfAnswerScreenContainer {
+            opacity : 0.5;
+        }
     }
     .playerContainer {
-        position : relative;
+        position : absolute;
         padding : 0.5rem;
         display : flex;
         flex-direction: column;
@@ -519,10 +583,10 @@
         justify-content: space-between;
         align-items: center;
         width : 100%;
-        background : #6C44A8;
-        color : #fff;
+        color : #333;
         padding : 0.5rem;
         border-radius : 0.5rem;
+        border : 2px solid #D9D9D9
     }
     .lockedPlayer {
         background-color: #fff;
@@ -532,7 +596,7 @@
     .playerDetails {
         display : flex;
         gap : 5px;
-        max-width: 50%;
+        max-width: 80%;
         justify-content: flex-start;
         align-items: center;
     }
@@ -571,24 +635,60 @@
         border-radius: 50%;
     }
     .answerScreenContainer {
-        margin : auto 0;
+        margin : auto 12.5vw auto 0;
         padding : 0rem 1rem;
         position : relative;
-        width : 60vw;
+        width : 50vw;
     }
-    @media screen and (max-width : 1200px) {
-        .answerScreenContainer {
-            width : 70vw;
+    @media screen and (max-width : 1150px) {
+        .otherPlayerStatus {
+            margin-left : calc(10vw + 1rem);
         }
-    }
-    @media screen and (max-width : 1000px) {
         .answerScreenContainer {
-            width : 80vw;
+            margin-right : 10vw;
         }
     }
     @media screen and (max-width : 900px) {
+        .otherPlayerStatus {
+            margin-left : calc(8vw + 1rem);
+        }
         .answerScreenContainer {
-            width : 90vw;
+            margin-right : 8vw;
+        }
+    }
+    @media screen and (max-width : 800px) {
+        .otherPlayerStatus {
+            margin-left : calc(3vw + 1rem);
+        }
+        .answerScreenContainer {
+            margin-right : 3vw;
+            width : 55vw;
+        }
+    }
+    @media screen and (max-width : 700px) {
+        .otherPlayerStatus {
+            margin-left : calc(1vw + 1rem);
+        }
+        .answerScreenContainer {
+            margin-right : 1vw;
+        }
+    }
+    @media screen and (max-width : 600px) {
+        .otherPlayerStatus {
+            position : absolute;
+            z-index : 1;
+            top : calc(100% + 4rem);
+            margin-left : 0;
+            transition : top 2s linear;
+            min-width : 55vw;
+            min-height : 40vh;
+        }
+        .showPlayersStatus {
+            top : 50%;
+            transform : translateY(-50%);
+        }
+        .answerScreenContainer {
+            width : 70vw;
         }
     }
     .svgContainer {
@@ -653,6 +753,12 @@
         width : 100%;
         margin : 0rem auto;
     }
+    @media screen and (max-width : 550px) {
+        .allOptions {
+            display : flex;
+            flex-direction: column;
+        }
+    }
     .option,.selectedOption,.correctOption,.wrongOption,.simpleOption {
         border : 2px solid #D9D9D9;
         border-radius: 1rem;
@@ -701,7 +807,7 @@
     .questionTimerContainer {
         position : absolute;
         display : flex;
-        width : 100%;
+        width : calc(100% - 2rem);
         justify-content: center;
         align-items: center;
         height: 1.5rem;
@@ -734,6 +840,7 @@
     }
     .allAnswers {
         display : flex;
+        flex-wrap: wrap;
         justify-content: center;
         gap : 0.5rem;
         align-items: center;

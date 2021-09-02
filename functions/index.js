@@ -330,18 +330,20 @@ exports.startNextQuestionWaitingTimer = functions.database.ref('/trivia/{gameSes
             currentQuestionNumberSnap = snap[0];
             if(!currentQuestionNumberSnap.exists() || currentQuestionNumberSnap.val() === undefined || currentQuestionNumberSnap.val() === null) {
               console.log('Current Question number not exists');
+              clearInterval(interval);
               return resolve();
             }
             currentQuestionNumber = currentQuestionNumberSnap.val();
             if(currentQuestionNumber === 4) {
               await Promise.all([pageRef.set('HalfTime'),halfTimerRef.set(10)]);
-              // clearInterval(interval);
+              clearInterval(interval);
               return resolve();
             }
             else if( currentQuestionNumber === 9) {
               let snap = await Promise.all([allQuestionsRef.get(),pageRef.set('HalfTime')]);
               if(!snap[0].exists() || snap[0].val() === undefined || snap[0].val() === null) {
                 console.log('allQuestion not exist in database so unable to update leader board data');
+                clearInterval(interval);
                 return resolve();
               }
               allQuestions = snap[0].val();
@@ -363,12 +365,12 @@ exports.startNextQuestionWaitingTimer = functions.database.ref('/trivia/{gameSes
               }
               await updateLeaderBoard({gameSessionId,scoreOfUsers})
               console.log('Leader board is updated');
-              // clearInterval(interval);
+              clearInterval(interval);
               return resolve();
             }
             else if(currentQuestionNumber < 9){
               await currentQuestionNumberRef.set(currentQuestionNumber + 1)
-              // clearInterval(interval);
+              clearInterval(interval);
               return resolve();
             }
           }
@@ -437,16 +439,17 @@ exports.startHalfTimer = functions.runWith(runtimeOpts).database.ref('/trivia/{g
         timerValue = halfTimerSnap.val();
         timerValue = timerValue - 1;
         if( timerValue <= 0) {
+          clearInterval(interval);
           await halfTimerRef.set(0);
           Promise.all([pageRef.set('Game'),currentQuestionNumberRef.transaction(count => {if(count === 4)return count + 1;else return count}),halfTimerRef.remove()])
           .then(()=>{
             console.log('page is set to game, question number is incremented and half timer is removed');
-            clearInterval(interval);
+            // clearInterval(interval);
             resolve();
           })
           .catch((err)=>{
             console.error('error ',err);
-            clearInterval(interval);
+            // clearInterval(interval);
             resolve();
           });
         }
