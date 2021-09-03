@@ -158,11 +158,12 @@
     function processName(user){
         let name = user.userName;
         let fname = name?.split(" ")[0];
+        let lname = name?.split(" ")[1];
         if(fname?.length > 7)
         {
-            fname = name?.split(" ")[0][0].toUpperCase();
-            if(name?.split(" ")[1][0].toUpperCase()) {
-                fname += name?.split(" ")[1][0].toUpperCase();
+            fname = fname[0].toUpperCase();
+            if(lname) {
+                fname += lname[0].toUpperCase();
             }
         }
         if(user.id === hostId) {
