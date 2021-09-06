@@ -330,7 +330,7 @@
     }
     let showPlayersStatus = false;
     let playerStatusText = "Players Status";
-    function handleShowPlayerStatus() {
+    function handleShowPlayerStatus(e) {
         if(showPlayersStatus === false) {
             showPlayersStatus = true;
             playerStatusText = 'Hide';
@@ -340,26 +340,33 @@
             playerStatusText = 'Players Status';
         }
     }
+    
+    function handleShowPlayerStatusOutside() {
+        if(showPlayersStatus === true) {
+            showPlayersStatus = false;
+            playerStatusText = 'Players Status';
+        }
+    }
 </script>
-<div class = "gameContainer" onmousedown="return false" onselectstart="return false"> 
-    <!-- {#if time === 0}
-        <RoundIndicator roundValue = {currentQuestionNumber + 1} msg = {"Question"}/>
-    {/if} -->
+<svelte:window on:click = {handleShowPlayerStatusOutside} />
+<div class = "gameContainer" onmousedown="return false" onselectstart="return false" > 
     <TriviaIcon/>
-    <div class="playersStatus" on:click = {handleShowPlayerStatus} >
-        {playerStatusText}
+    <div class = "playerStatusContainer" on:click = {(e) => e.stopPropagation()}>
+        <div class="playersStatus" on:click = {handleShowPlayerStatus} >
+            {playerStatusText}
+        </div>
     </div>
     {#key currentQuestionNumber }
         <div class="parentContainer" in:fly ="{{ y: -20, duration: 1000 }}">
             {#key questionTimer === 0}
-                <div class="otherPlayerStatus" class:showPlayersStatus = {showPlayersStatus} in:fly ="{{ y: -20, duration: 1000 }}">
+                <div class="otherPlayerStatus" class:showPlayersStatus = {showPlayersStatus} in:fly ="{{ y: -20, duration: 1000 }}" on:click = {(event)=> event.stopPropagation()}>
                     <div class="playerStatusHeading">
                         Players Status
                     </div>
                     <div style = "position : relative; flex-grow : 100 ; overflow-y : auto">
                         <div class="playerContainer">
                             {#each usersStatus as player}
-                                <div class="player" class:lockedPlayer = {player.locked} class:correctAnswered = {questionTimer === 0 && player['answerStatus'] === 'correct'} class:wrongAnswered = {questionTimer === 0 && player['answerStatus'] === 'wrong'} class:noAnswered = {questionTimer === 0 && player['answerStatus'] == null} title = {player.locked?`${player.userName} has locked his answer`:`${player.userName} hasn't locked his answer`}>
+                                <div class="player" class:lockedPlayer = {player.locked} class:correctAnswered = {questionTimer === 0 && player['answerStatus'] === 'correct'} class:wrongAnswered = {questionTimer === 0 && player['answerStatus'] === 'wrong'} class:noAnswered = {questionTimer === 0 && player['answerStatus'] == null} title = {player.locked?`${player.userName.split(" ")[0]} has locked one of the option`:`${player.userName.split(" ")[0]} hasn't locked any option`}>
                                     <div class="playerDetails">
                                         {#if validUserProfilePicture(player.profilePicture)}
                                             <img class = "profilePicture" src = {player.profilePicture} alt = "UserProfilePicture">
@@ -557,10 +564,15 @@
     .playerStatusHeading {
         top : -0.85rem;
     }
+    .playerStatusContainer {
+        position : absolute;
+        bottom : 0;
+    }
     .playersStatus {
         display : none;
         visibility: hidden;
         bottom : 0;
+        position: relative;
     }
     @media screen and (max-width : 600px) {
         .playersStatus {
@@ -575,7 +587,8 @@
     }
     .playerContainer {
         position : absolute;
-        padding : 0.5rem;
+        padding-left : calc(16px);
+        padding-top : 0.25rem;
         display : flex;
         flex-direction: column;
         gap : 1rem;
@@ -701,7 +714,7 @@
             min-height : 40vh;
         }
         .showPlayersStatus {
-            bottom : 2.5rem;
+            bottom : 0rem;
         }
         .answerScreenContainer {
             width : 70vw;
@@ -882,7 +895,7 @@
         margin : 0rem auto;
         height : 2rem;
         align-items: center;
-        margin-bottom: 0.15rem;
+        margin-bottom: 0.25rem;
     }
     .waiting {
         color : #6C44A8;
