@@ -6,7 +6,7 @@
     import RoundIndicator from './RoundIndicator.svelte';
     import {info} from './Notifier';
     import CustomButton from './CustomButton.svelte';
-    import {onMount} from 'svelte';
+    import {onDestroy, onMount} from 'svelte';
     import Locked from './icons/Locked.svelte';
     import Unlocked from './icons/Unlocked.svelte';
     import CorrectAnswer from './icons/CorrectAnswer.svelte';
@@ -19,15 +19,12 @@
     let options = [];
     let borderColor = "#27AE60";
     let questionTimer;
-    let time = 0;
     let remTime;
     let users;
     let pageHasRefreshed = true;
-    let interval;
     let requestAnimationFrameId;
     let nextQuestionWaitingTimer;
     let svgId;
-    let setIntervalInterval;
     let stroke;
     let maxValueOfStroke;
     let strokeDashOffset;
@@ -35,12 +32,15 @@
     let initialTime = 31;
     let timeVal,timeVal1;
     let usersStatus = [];
-    let correctOption;
     onMount(()=>{
         maxValueOfStroke = 2*(svgId.offsetWidth + svgId.offsetHeight);
         strokeDashOffset = (svgId.offsetWidth/2);
         stroke1 = maxValueOfStroke;
         stroke = 0;
+        console.log('Hey i am mouted');
+    })
+    onDestroy(()=>{
+        cancelAnimationFrame(requestAnimationFrameId);
     })
 
     listenFirebaseKey(dbNextQuestionWaitingTimer,(dbNextQuestionWaitingTimerRef)=>{
@@ -60,24 +60,12 @@
             currentQuestionNumber = snap.val();
             selectedOptionId = undefined;
             lockedOptionId = undefined;
-            time = 0;
             questionTimer = 30;
             usersStatus = [];
             borderColor = "#27AE60";
             pageHasRefreshed = true;
-            clearInterval(interval);
-            interval = setInterval(()=>{
-                time = 1;
-
-                if(time === 1) {
-                    clearInterval(interval);
-                }
-            },1000);
         })
     })
-    $: {
-        console.log('time ',time)
-    }
     dbUsers.on('value',(snap)=>{
         if(!snap.exists()) {
             return;
@@ -91,7 +79,6 @@
             usersStatus = [];
             let currentQuestionUsersAnswers = allQuestions[currentQuestionNumber]['usersAnswers'];
             let currentQuestionCorrectOption = allQuestions[currentQuestionNumber]['correctOption'];
-            correctOption = currentQuestionCorrectOption;
             for(const id in users) {
                 if(users[id].isOnline === true) {
                     noOfOnlinePlayers += 1;
@@ -116,7 +103,7 @@
                 }
             }
             usersStatus = usersStatus;
-            console.log('usersStatus ',usersStatus);
+            // console.log('usersStatus ',usersStatus);
             if(noOfOnlinePlayers <= 1) {
                 dbGameSessionRoundValue.transaction((count)=>{
                     return count + 1;
@@ -126,24 +113,12 @@
             }
         }
     }
-    
-    let opacityOfContainer;
-    $: {
-        if(time === 0) {
-            opacityOfContainer = 0.5;
-        }
-        else {
-            opacityOfContainer = 1;
-        }
-    }
-
-    
-
     listenFirebaseKey(dbQuestionTimer,(dbQuestionTimerRef)=>{
         dbQuestionTimerRef.on('value',(snap)=>{
 
             if(!snap.exists()) {
                 questionTimer = 30;
+                return;
             }
             else {
                 initialTime = snap.val();
@@ -166,7 +141,6 @@
             else if(questionTimer > 0) {
                 borderColor = "#C81919";
             }
-            // clearInterval( setIntervalInterval );
             timeVal1 = initialTime;
             if(initialTime === 0) {
                 cancelAnimationFrame(requestAnimationFrameId);
@@ -185,6 +159,9 @@
 
     let prev,curr,elapsed;
     function setStroke(timeStamp) {
+        if(!svgId) {
+            return;
+        }
         if(!prev) {
             prev = timeStamp;
             timeVal = timeVal1;
