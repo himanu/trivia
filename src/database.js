@@ -103,8 +103,8 @@ dbGameSessionRoundValue.on("value", (snap) => {
   }
   roundValue = snap.val();
 })
-dbAllCategories.set(allCategoriesObject); 
-dbAllCategoriesName.set(categoriesNameArray);
+// dbAllCategories.set(allCategoriesObject); 
+// dbAllCategoriesName.set(categoriesNameArray);
 
 var connectedRef = firebase.database().ref('.info/connected');
 connectedRef.on('value', (snap) => {
