@@ -201,7 +201,7 @@
         overflow-y : auto;
         max-height : 50vh;
         min-width : 60vw;
-        padding : 0rem 0.5rem;
+        padding : 0rem 0.5rem 1rem;
     }
     @media screen and (max-width : 600px) {
         .categoriesList {
