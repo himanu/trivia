@@ -1,7 +1,7 @@
 import firebase from "firebase/app";
 import "firebase/database";
 import 'firebase/functions';
-import { getGameSessionId, getParams, allCategoriesObject, categoriesNameArray} from "./utils";
+import { getGameSessionId, getParams } from "./utils";
 
 const firebaseConfig = {
 	apiKey: process.env.API_KEY,
